@@ -16,10 +16,7 @@
 
     <form @submit.prevent="handleSubmit" class="form">
       <div class="form-row">
-        <div class="form-labels">
-          <label class="input-label">correo:</label>
-          <label class="input-label">contraseña:</label>
-        </div>
+        
 
         <div class="form-inputs">
           <input
@@ -183,14 +180,14 @@ export default {
 
 /* Inputs */
 .input {
-  flex: 1;
-  padding: 12px;
-  border: 2px solid #000;
-  border-radius: 12px; /* Borde redondeado como quieres */
-  font-size: 1rem;
-  background-color: #fff;
-  text-align: center;
   width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  border: 2px solid #444;
+  background-color: #3d3d3d;
+  color: #fff;
+  font-size: 1rem;
+  text-align: center;
 }
 
 .input:focus {

@@ -172,9 +172,12 @@ export default {
 }
 
 .form-title {
-  color: #e9ecef;
-  margin-bottom: 25px;
-  font-size: 1.8rem;
+  font-size: 2rem;
+  margin-bottom: 20px;
+  background: linear-gradient(to right, #ff416c, #ff4b2b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: bold;
 }
 
 .form-container {
@@ -197,6 +200,12 @@ export default {
 
 .form-input::placeholder {
   color: #aaa;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #ff4b2b;
+  box-shadow: 0 0 5px rgba(255, 75, 43, 0.5);
 }
 
 .input-message {
