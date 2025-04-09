@@ -1,61 +1,53 @@
 <template>
-  <div class="register-container min-vh-100 d-flex flex-column justify-content-center align-items-center p-4" style="background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);">
-    <div class="card p-5 shadow-lg rounded-4 text-center" style="max-width: 500px; width: 100%;">
+  <div class="public-container">
+    <button class="back-button" @click="goBack" :disabled="loading" aria-label="Volver al inicio">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
 
-      <h1 class="text-gradient mb-4">Registrarse</h1>
+    <img src="/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
 
-      <div v-if="error" class="alert alert-danger mb-3" role="alert">
-        {{ error }}
-      </div>
+    <div class="auth-form">
+      <h1 class="form-title">Registrarse</h1>
 
-      <form @submit.prevent="handleSubmit" class="d-flex flex-column gap-3">
-        <div class="form-group">
-          <input 
-            type="text" 
-            class="form-control text-center"
-            v-model="formData.nombre"
-            @input="validateUsername"
-            placeholder="Nombre de usuario"
-            required
-            pattern="^[a-zA-Z0-9]{3,15}$"
-            title="El nombre debe tener entre 3 y 15 caracteres, solo letras y números"
-          />
-          <small class="text-info" v-if="formData.nombre">
-            {{ usernameMessage }}
-          </small>
+      <form @submit.prevent="handleSubmit" class="form-container">
+        <input
+          type="text"
+          v-model="formData.nombre"
+          @input="validateUsername"
+          placeholder="Nombre de usuario"
+          required
+          pattern="^[a-zA-Z0-9]{3,15}$"
+          class="form-input"
+        />
+        <small class="input-message" v-if="formData.nombre">
+          {{ usernameMessage }}
+        </small>
+
+        <input
+          type="email"
+          v-model="formData.correo"
+          placeholder="Correo electrónico"
+          required
+          class="form-input"
+        />
+
+        <input
+          type="password"
+          v-model="formData.contrasena"
+          placeholder="Contraseña"
+          required
+          minlength="6"
+          class="form-input"
+        />
+
+        <div v-if="error" class="error-message">
+          {{ error }}
         </div>
 
-        <div class="form-group">
-          <input 
-            type="email" 
-            class="form-control text-center"
-            v-model="formData.correo"
-            placeholder="Correo electrónico"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <input 
-            type="password" 
-            class="form-control text-center"
-            v-model="formData.contrasena"
-            placeholder="Contraseña"
-            required
-            minlength="6"
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          class="btn btn-primary btn-lg fw-bold mt-3"
-          :disabled="loading || !isValidUsername"
-        >
+        <button type="submit" class="action-button" :disabled="loading || !isValidUsername">
           {{ loading ? 'Registrando...' : 'Registrarse' }}
-        </button>
-
-        <button type="button" class="btn btn-success btn-lg fw-bold" @click="goBack" :disabled="loading">
-          Volver
         </button>
       </form>
     </div>
@@ -133,71 +125,113 @@ export default {
 </script>
 
 <style scoped>
-.text-gradient {
-  background: linear-gradient(to right, #ff416c, #ff4b2b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
+.public-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  background-color: #1e1e1e;
+  border: 15px solid #bf734f;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
-.register-container {
-  background-size: cover;
-  background-position: center;
-}
-
-.card {
-  background-color: rgba(255, 255, 255, 0.95);
+.back-button {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  background: transparent;
   border: none;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 10;
+}
+.back-button svg {
+  transition: transform 0.3s ease;
+}
+.back-button:hover svg {
+  transform: translateX(-3px);
 }
 
-.monopoly-logo {
-  width: 100%;
-  max-width: 150px;
+.logo {
+  max-width: 250px;
   height: auto;
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
-input.form-control {
-  height: 50px;
-  font-size: 1.1rem;
-  border-radius: 12px;
-  border: 2px solid #000;
-  background-color: white;
+.auth-form {
+  width: 100%;
+  max-width: 400px;
 }
 
-input.form-control:focus {
-  box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
-  border-color: #000;
+.form-title {
+  color: #e9ecef;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
 }
 
-small.text-info {
-  font-weight: bold;
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  border: 2px solid #444;
+  background-color: #3d3d3d;
+  color: #fff;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.form-input::placeholder {
+  color: #aaa;
+}
+
+.input-message {
   display: block;
+  color: #bf734f;
+  font-size: 0.8rem;
   margin-top: 5px;
-  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-  color: #fff !important;
 }
 
-.btn-primary {
-  background-color: #ff4b2b;
-  border: none;
+.error-message {
+  color: #ff6b6b;
+  margin: 15px 0;
+  font-weight: 500;
 }
 
-.btn-primary:hover {
-  background-color: #ff416c;
+.action-button {
+  padding: 12px 30px;
+  border-radius: 6px;
+  background-color: #e9ecef;
+  color: #030303;
+  border: 2px solid #030303;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 10px;
 }
 
-.btn-success {
-  background-color: #198754;
-  border: none;
+.action-button:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
 }
 
-.btn-success:hover {
-  background-color: #157347;
-}
-
-.alert {
-  border: 2px solid #000;
-  font-weight: bold;
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
