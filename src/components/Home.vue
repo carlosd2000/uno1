@@ -1,16 +1,10 @@
 <template>
-  <div class="home-container min-vh-100 d-flex flex-column justify-content-center align-items-center p-4" style="background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);">
-    <div class="card p-5 shadow-lg rounded-4 text-center">
-      <h1 class="text-gradient mb-4">Bienvenidos</h1>
+  <div class="public-container">
+    <img src="../../public/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
 
-      <div class="d-grid gap-3">
-        <button class="btn btn-primary btn-lg fw-bold" @click="goToRegister">
-          Registrarse
-        </button>
-        <button class="btn btn-success btn-lg fw-bold" @click="goToLogin">
-          Iniciar sesión
-        </button>
-      </div>
+    <div class="buttons-container">
+      <button class="action-button" @click="goToLogin">Login</button>
+      <button class="action-button" @click="goToRegister">Registro</button>
     </div>
   </div>
 </template>
@@ -30,38 +24,55 @@ export default {
 </script>
 
 <style scoped>
-.text-gradient {
-  background: linear-gradient(to right, #ff416c, #ff4b2b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
+.public-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;  /* Ocupa toda la pantalla */
+  width: 100vw;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  background-color: #1e1e1e; /* Fondo negro */
+  border: 15px solid #bf734f; /* Borde café grueso */
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
-.home-container {
-  background-size: cover;
-  background-position: center;
+.logo {
+  max-width: 250px;
+  height: auto;
+  margin-bottom: 40px;
 }
 
-.card {
-  background-color: rgba(255, 255, 255, 0.95);
-  border: none;
+.buttons-container {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
-.btn-primary {
-  background-color: #ff4b2b;
-  border: none;
+.action-button {
+  padding: 12px 30px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background-color: #e9ecef; /* Color blanco/gris para el botón de login */
+  color: rgb(3, 3, 3);
+  border: 2px solid #030303;
 }
 
-.btn-primary:hover {
-  background-color: #ff416c;
+.register-button {
+  background-color: transparent;
+  color: #42b983;
+  border: 2px solid #42b983;
 }
 
-.btn-success {
-  background-color: #198754;
-  border: none;
-}
-
-.btn-success:hover {
-  background-color: #157347;
+.action-button:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
 }
 </style>
