@@ -1,6 +1,6 @@
 <template>
   <div class="public-container">
-    <img src="../../public/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
+    <img src="/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
 
     <div class="buttons-container">
       <button class="action-button" @click="goToLogin">Login</button>

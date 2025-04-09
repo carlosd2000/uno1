@@ -6,7 +6,7 @@
       </svg>
     </button>
 
-    <img src="../../public/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
+    <img src="/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
 
     <h1 class="title">Iniciar Sesión</h1>
 
