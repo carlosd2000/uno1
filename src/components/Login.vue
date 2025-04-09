@@ -1,31 +1,48 @@
 <template>
-  <div class="login-container min-vh-100 d-flex flex-column justify-content-center align-items-center p-4"
-       style="background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);">
-    <div class="card p-5 shadow-lg rounded-4 text-center" style="max-width: 500px; width: 100%;">
-      <h1 class="text-gradient mb-4">Iniciar Sesión</h1>
+  <div class="public-container">
+    <button class="back-button" @click="goBack" :disabled="loading" aria-label="Volver al inicio">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
 
-      <div v-if="error" class="alert alert-danger mb-3" role="alert">
-        {{ error }}
+    <img src="../../public/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
+
+    <h1 class="title">Iniciar Sesión</h1>
+
+    <div v-if="error" class="alert" role="alert">
+      {{ error }}
+    </div>
+
+    <form @submit.prevent="handleSubmit" class="form">
+      <div class="form-row">
+        <div class="form-labels">
+          <label class="input-label">correo:</label>
+          <label class="input-label">contraseña:</label>
+        </div>
+
+        <div class="form-inputs">
+          <input
+            type="email"
+            v-model="formData.correo"
+            placeholder="Correo electrónico"
+            required
+            class="input"
+          />
+          <input
+            type="password"
+            v-model="formData.contrasena"
+            placeholder="Contraseña"
+            required
+            class="input"
+          />
+        </div>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="d-flex flex-column gap-3">
-        <div class="form-group">
-          <input type="email" class="form-control text-center" v-model="formData.correo" placeholder="Correo electrónico" required />
-        </div>
-
-        <div class="form-group">
-          <input type="password" class="form-control text-center" v-model="formData.contrasena" placeholder="Contraseña" required />
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-lg fw-bold mt-3" :disabled="loading">
-          {{ loading ? 'Iniciando sesión...' : 'Iniciar sesión' }}
-        </button>
-
-        <button type="button" class="btn btn-success btn-lg fw-bold" @click="goBack" :disabled="loading">
-          Volver
-        </button>
-      </form>
-    </div>
+      <button type="submit" class="action-button" :disabled="loading">
+        {{ loading ? 'Iniciando...' : 'Iniciar sesión' }}
+      </button>
+    </form>
   </div>
 </template>
 
@@ -70,56 +87,145 @@ export default {
 </script>
 
 <style scoped>
-.text-gradient {
+/* Estilos generales */
+.public-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  background-color: #1e1e1e;
+  border: 15px solid #bf734f;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* Logo UNO */
+.logo {
+  max-width: 250px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+/* Botón volver */
+.back-button {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 10;
+}
+.back-button svg {
+  transition: transform 0.3s ease;
+}
+.back-button:hover svg {
+  transform: translateX(-3px);
+}
+
+/* Título */
+.title {
+  font-size: 2rem;
+  margin-bottom: 20px;
   background: linear-gradient(to right, #ff416c, #ff4b2b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: bold;
 }
 
-.login-container {
-  background-size: cover;
-  background-position: center;
+/* Formulario */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 400px;
 }
 
-.card {
-  background-color: rgba(255, 255, 255, 0.95);
-  border: none;
+/* Dos columnas */
+.form-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
 }
 
-input.form-control {
-  height: 50px;
-  font-size: 1.1rem;
-  border-radius: 12px;
-  border: 2px solid #000;
-  background-color: white;
+/* Columna de etiquetas */
+.form-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: right;
 }
 
-input.form-control:focus {
-  box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
-  border-color: #000;
+/* Columna de inputs */
+.form-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
 }
 
-.btn-primary {
-  background-color: #ff4b2b;
-  border: none;
-}
-
-.btn-primary:hover {
-  background-color: #ff416c;
-}
-
-.btn-success {
-  background-color: #198754;
-  border: none;
-}
-
-.btn-success:hover {
-  background-color: #157347;
-}
-
-.alert {
-  border: 2px solid #000;
+/* Texto de etiquetas */
+.input-label {
+  color: #ffffff;
   font-weight: bold;
+  width: 100px;
+}
+
+/* Inputs */
+.input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #000;
+  border-radius: 12px; /* Borde redondeado como quieres */
+  font-size: 1rem;
+  background-color: #fff;
+  text-align: center;
+  width: 100%;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #ff4b2b;
+  box-shadow: 0 0 5px rgba(255, 75, 43, 0.5);
+}
+
+/* Botón Iniciar Sesión */
+.action-button {
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-weight: 600;
+  background-color: #e9ecef;
+  color: rgb(3, 3, 3);
+  border: 2px solid #030303;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+/* Mensaje de error */
+.alert {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8d7da;
+  border: 2px solid #000;
+  color: #721c24;
+  border-radius: 8px;
+  font-weight: bold;
+  max-width: 400px;
+  width: 100%;
 }
 </style>
