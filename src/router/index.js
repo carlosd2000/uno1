@@ -4,7 +4,7 @@ import Register from '../components/Register.vue'
 import Login from '../components/Login.vue'
 import Principal from '../components/Principal.vue'
 import CrearSala from '../components/CrearSala.vue'
-
+import UnirseSala from '../components/UnirseSala.vue'
 const routes = [
   {
     path: '/',
@@ -30,6 +30,11 @@ const routes = [
     path: '/crearsala',
     name: 'crearsala',
     component: CrearSala
+  },
+  {
+    path: '/unirseSala',
+    name: 'unirseSala',
+    component: UnirseSala
   }
 ]
 
