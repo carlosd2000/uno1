@@ -3,6 +3,7 @@ import Home from '../components/Home.vue'
 import Register from '../components/Register.vue'
 import Login from '../components/Login.vue'
 import Principal from '../components/Principal.vue'
+import CrearSala from '../components/CrearSala.vue'
 
 const routes = [
   {
@@ -24,6 +25,11 @@ const routes = [
     path: '/principal',
     name: 'Principal',
     component: Principal
+  },
+  {
+    path: '/crearsala',
+    name: 'crearsala',
+    component: CrearSala
   }
 ]
 

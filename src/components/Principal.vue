@@ -55,7 +55,7 @@ export default {
       }
     },
     crearPartida() {
-      alert('Crear partida (aquí irá la lógica)')
+      this.$router.push('/crearsala')
     },
     unirsePartida() {
       alert('Unirse a partida (aquí irá la lógica)')
