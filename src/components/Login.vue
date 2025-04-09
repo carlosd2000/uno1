@@ -72,7 +72,7 @@ export default {
       })
 
       if (result.success) {
-        this.$router.push('/about')
+        this.$router.push('/principal')
       } else {
         this.error = result.error
       }
