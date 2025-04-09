@@ -1,84 +1,78 @@
 <template>
-    <div class="public-container">
-      <!-- Botón volver -->
-      <button class="back-button" @click="goBack" :disabled="loading" aria-label="Volver a principal">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
-    
-      <!-- Logo UNO -->
-      <img src="/img/UNO_Logo.svg" alt="UNO Logo" class="logo">
-    
-      <div class="lobby-card">
-        <!-- Contenido principal -->
-        <div class="content">
-          <!-- Mitad izquierda: Jugadores -->
-          <div class="players-section">
-            <h2 class="section-title">Jugadores</h2>
-    
-            <div class="players-list">
-              <div v-for="(player, index) in players" :key="index" class="player-item">
-                <img src="/img/avatar.jpg" alt="avatar" class="avatar">
-                <input
-                  v-model="player.name"
-                  type="text"
-                  class="player-input"
-                  placeholder="Nombre"
-                />
-              </div>
+  <div class="public-container">
+    <button class="back-button" @click="goBack" aria-label="Volver al principal">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+    </button>
+
+    <img src="/img/UNO_Logo.svg" alt="UNO Logo" class="logo" />
+
+    <div class="lobby-card">
+      <div class="content">
+        <div class="players-section">
+          <h2 class="section-title">Jugadores Conectados</h2>
+
+          <div class="players-list">
+            <div v-for="jugador in jugadores" :key="jugador.id_jugador" class="player-item">
+              <img src="/img/avatar.jpg" alt="avatar" class="avatar" />
+              <p class="player-name">{{ jugador.apodo }}</p>
             </div>
           </div>
-    
-          <!-- Mitad derecha: Código y Botón -->
-          <div class="room-section">
-            <h2 class="section-title">Código de Sala</h2>
-            <p class="room-code">{{ roomCode }}</p>
-    
-            <p class="waiting-text">esperando que el anfitrión<br>inicie la partida....</p>
-          </div>
+        </div>
+
+        <div class="room-section">
+          <h2 class="section-title">Esperando que el anfitrión inicie...</h2>
+          <p class="room-code">{{ roomCode }}</p>
         </div>
       </div>
     </div>
-</template>  
-  
+  </div>
+</template>
+
 <script>
-  export default {
-    name: "Lobby",
-    data() {
-      return {
-        players: [
-          { name: "Jugador 1", avatar: "avatar1.png" },
-          { name: "Jugador 2", avatar: "avatar2.png" },
-          { name: "Jugador 3", avatar: "avatar3.png" },
-          { name: "Jugador 4", avatar: "avatar4.png" },
-        ],
-        roomCode: "",
-        loading: false
-      };
-    },
-    created() {
-      this.roomCode = this.generateRoomCode();
-    },
-    methods: {
-      generateRoomCode() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 6; i++) {
-          code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return code;
-      },
-      startGame() {
-        console.log("Iniciar juego con código:", this.roomCode);
-      },
-      goBack() {
-        this.$router.push('/UnirseSala')
-      }
+import { gameService } from '../script/GameService'
+
+export default {
+  name: "SalaEspera",
+  data() {
+    return {
+      jugadores: [],
+      roomCode: ''
     }
-  };
+  },
+  created() {
+    this.roomCode = this.$route.query.roomCode
+    if (this.roomCode) {
+      this.listenToSala()
+    } else {
+      this.$router.push('/principal')
+    }
+  },
+  methods: {
+    listenToSala() {
+      gameService.subscribeToSala(this.roomCode, (salaData) => {
+        if (salaData) {
+          this.jugadores = salaData.jugadores
+          if (salaData.status === 'in_progress') {
+            this.$router.push('/juego')
+          }
+        } else {
+          this.$router.push('/principal')
+        }
+      })
+    },
+    goBack() {
+      gameService.cancelSubscription()
+      this.$router.push('/principal')
+    }
+  },
+  beforeUnmount() {
+    gameService.cancelSubscription()
+  }
+}
 </script>
-  
+
 <style scoped>
 
 .waiting-text {

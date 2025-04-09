@@ -1,44 +1,41 @@
 <template>
   <div class="public-container">
-    <!-- Botón salir (icono en esquina superior izquierda) -->
-    <button class="back-button" aria-label="Salir">
-      <img src="/img/salir.svg" alt="Salir" class="icono-salir" />
+    <button class="back-button" @click="logout" aria-label="Cerrar sesión">
+      <img src="/img/salir.svg" alt="Cerrar sesión" class="icono-salir" />
     </button>
 
-    <!-- Logo UNO -->
-    <img src="/img/UNO_Logo.svg" alt="Logo del juego Uno" class="logo" />
+    <img src="/img/UNO_Logo.svg" alt="Logo UNO" class="logo" />
 
-    <!-- Contenedor principal -->
     <div class="auth-form">
-      <!-- Avatar + Input + Botón Guardar -->
       <div class="avatar-section">
         <img src="/img/avatar.jpg" alt="Avatar" class="avatar" />
+
         <input
           type="text"
           v-model="nombreJugador"
-          placeholder="Ingresa tu nombre"
+          placeholder="Ingresa tu apodo"
           class="form-input"
         />
-        <button class="btn-guardar" @click="guardarNombre">Guardar</button>
-      </div>
 
-      <!-- Botones Crear y Unirse -->
-      <div class="button-group">
-        <button class="btn custom-yellow" @click="crearPartida">
-          Crear partida
-          <img src="/img/mas.svg" alt="Crear" class="icono-boton" />
-        </button>
+        <div class="button-group">
+          <button class="btn custom-yellow" @click="crearPartida">
+            Crear partida
+            <img src="/img/mas.svg" alt="Crear" class="icono-boton" />
+          </button>
 
-        <button class="btn custom-yellow" @click="unirsePartida">
-          Unirse a partida
-          <img src="/img/flecha-derecha.svg" alt="Unirse" class="icono-boton" />
-        </button>
+          <button class="btn custom-yellow" @click="unirsePartida">
+            Unirse a partida
+            <img src="/img/flecha-derecha.svg" alt="Unirse" class="icono-boton" />
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { getAuth } from 'firebase/auth'
+
 export default {
   name: 'Principal',
   data() {
@@ -47,26 +44,33 @@ export default {
     }
   },
   methods: {
-    guardarNombre() {
-      if (this.nombreJugador.trim()) {
-        alert(`Nombre guardado: ${this.nombreJugador}`)
-      } else {
-        alert('Por favor, ingresa tu nombre.')
-      }
-    },
     crearPartida() {
-      this.$router.push('/crearsala')
+      if (!this.nombreJugador.trim()) {
+        alert('Por favor ingresa tu apodo')
+        return
+      }
+      // Redirige pasando el apodo como query
+      this.$router.push({ path: '/crearsala', query: { apodo: this.nombreJugador } })
     },
     unirsePartida() {
-      this.$router.push('/UnirseSala')
-      
+      if (!this.nombreJugador.trim()) {
+        alert('Por favor ingresa tu apodo')
+        return
+      }
+      // Redirige pasando el apodo como query
+      this.$router.push({ path: '/unirseSala', query: { apodo: this.nombreJugador } })
+    },
+    logout() {
+      const auth = getAuth()
+      auth.signOut().then(() => {
+        this.$router.push('/')
+      })
     }
   }
 }
 </script>
 
 <style scoped>
-/* Fondo tipo tablero */
 .public-container {
   display: flex;
   flex-direction: column;
@@ -76,6 +80,7 @@ export default {
   width: 100vw;
   margin: 0;
   padding: 20px;
+  text-align: center;
   background-color: #1e1e1e;
   border: 15px solid #bf734f;
   box-sizing: border-box;
@@ -84,7 +89,6 @@ export default {
   left: 0;
 }
 
-/* Botón salir */
 .back-button {
   position: absolute;
   top: 25px;
@@ -100,78 +104,62 @@ export default {
   height: 32px;
 }
 
-/* Logo UNO */
 .logo {
   max-width: 150px;
   height: auto;
   margin-bottom: 20px;
 }
 
-/* Contenedor principal del formulario */
 .auth-form {
   width: 100%;
   max-width: 400px;
   text-align: center;
 }
 
-/* Sección avatar + input + guardar */
 .avatar-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 30px;
+  gap: 20px;
 }
 
-/* Avatar circular */
 .avatar {
   width: 90px;
   height: 90px;
   object-fit: cover;
   border-radius: 50%;
+  border: 2px solid #bf734f;
 }
 
-/* Input de nombre */
 .form-input {
-  flex: 1;
+  width: 100%;
+  max-width: 300px;
   padding: 12px;
   border-radius: 6px;
   border: 2px solid #444;
   background-color: #3d3d3d;
-  color: #fff;
+  color: #e9ecef;
   font-size: 1rem;
   text-align: center;
-  width: 100%;
+  margin-bottom: 15px;
 }
 
 .form-input::placeholder {
   color: #aaa;
 }
 
-/* Botón guardar nombre */
-.btn-guardar {
-  background-color: #42b983;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 6px;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
+.form-input:focus {
+  outline: none;
+  border-color: #bf734f;
+  box-shadow: 0 0 5px rgba(191, 115, 79, 0.5);
 }
 
-.btn-guardar:hover {
-  background-color: #369b6b;
-}
-
-/* Botones de Crear/Unirse */
 .button-group {
   display: flex;
   gap: 20px;
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
-/* Botones amarillos */
 .custom-yellow {
   background-color: #ffd43b;
   color: black;
@@ -185,13 +173,13 @@ export default {
   gap: 8px;
   border-radius: 6px;
   transition: 0.3s;
+  cursor: pointer;
 }
 
 .custom-yellow:hover {
   background-color: #e6be30;
 }
 
-/* Iconos dentro de botones */
 .icono-boton {
   width: 20px;
   height: 20px;

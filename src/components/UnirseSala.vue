@@ -1,55 +1,75 @@
 <template>
-    <div class="public-container">
-      <!-- Botón de volver al home -->
-      <button @click="$router.push('/principal')" class="back-button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
-      
-      <img src="../../public/img/UNO_Logo.svg" alt="Logo UNO" class="logo">
-      
-      <div class="auth-form">
-        <h2 class="form-title">Unirse a partida</h2>
-        
-        <div class="form-container">
-          <div class="input-group">
-            <input
-              type="text"
-              v-model="codigoIngresado"
-              placeholder="Código de la partida"
-              class="form-input"
-              :disabled="esperandoInicio"
-            >
-          </div>
-  
-          <div v-if="mensaje" class="error-message">
-            {{ mensaje }}
-          </div>
-  
-          <button 
-            class="action-button"
-            @click="unirseAPartida"
-            :disabled="esperandoInicio"
-          >
-            {{ esperandoInicio ? 'Esperando...' : 'Unirse' }}
-          </button>
-  
-          <div v-if="esperandoInicio" class="loading-spinner">
-            <div class="spinner"></div>
-          </div>
-        </div>
+  <div class="public-container">
+    <button class="back-button" @click="$router.push('/principal')" aria-label="Volver a principal">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+    </button>
+
+    <img src="/img/UNO_Logo.svg" alt="UNO Logo" class="logo" />
+
+    <div class="auth-form">
+      <h2 class="form-title">Unirse a partida</h2>
+
+      <div class="form-container">
+        <input v-model="codigoIngresado" type="text" class="form-input" placeholder="Código de la partida" />
+
+        <div v-if="mensaje" class="error-message">{{ mensaje }}</div>
+
+        <button class="action-button" @click="unirseAPartida">
+          Unirse
+        </button>
       </div>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    
+  </div>
+</template>
+
+<script>
+import { gameService } from '../script/GameService'
+import { getAuth } from 'firebase/auth'
+
+export default {
+  name: "UnirseSala",
+  data() {
+    return {
+      codigoIngresado: '',
+      mensaje: '',
+      apodo: ''
+    }
+  },
+  created() {
+    this.apodo = this.$route.query.apodo
+  },
+  methods: {
+    async unirseAPartida() {
+      if (!this.codigoIngresado.trim()) {
+        this.mensaje = 'Por favor ingresa un código válido.'
+        return
+      }
+
+      const user = getAuth().currentUser
+      if (!user) {
+        this.mensaje = 'No estás autenticado.'
+        return
+      }
+
+      if (!this.apodo) {
+        this.mensaje = 'No tienes un apodo configurado.'
+        return
+      }
+
+      try {
+        await gameService.joinSala(this.codigoIngresado, user.uid, this.apodo)
+        this.$router.push({ path: '/salaespera', query: { roomCode: this.codigoIngresado } })
+      } catch (error) {
+        this.mensaje = error.message
+      }
+    }
   }
-  </script>
-  
-  <style scoped>
+}
+</script>
+
+<style scoped>
   /* Estilos base (igual que en las otras vistas) */
   .public-container {
     display: flex;
@@ -173,4 +193,4 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
-  </style>
+</style>

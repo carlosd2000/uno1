@@ -1,84 +1,88 @@
 <template>
   <div class="public-container">
-    <!-- Botón volver -->
-    <button class="back-button" @click="goBack" :disabled="loading" aria-label="Volver a principal">
+    <button class="back-button" @click="goBack" aria-label="Volver a principal">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
+        <path d="M19 12H5M12 19l-7-7 7-7" />
       </svg>
     </button>
-  
-    <!-- Logo UNO -->
-    <img src="/img/UNO_Logo.svg" alt="UNO Logo" class="logo">
-  
+
+    <img src="/img/UNO_Logo.svg" alt="UNO Logo" class="logo" />
+
     <div class="lobby-card">
-      <!-- Contenido principal -->
       <div class="content">
-        <!-- Mitad izquierda: Jugadores -->
         <div class="players-section">
           <h2 class="section-title">Jugadores</h2>
-  
           <div class="players-list">
-            <div v-for="(player, index) in players" :key="index" class="player-item">
-              <img src="/img/avatar.jpg" alt="avatar" class="avatar">
-              <input
-                v-model="player.name"
-                type="text"
-                class="player-input"
-                placeholder="Nombre"
-              />
+            <div v-for="jugador in jugadores" :key="jugador.id_jugador" class="player-item">
+              <img src="/img/avatar.jpg" alt="avatar" class="avatar" />
+              <p class="player-name">{{ jugador.apodo }}</p>
             </div>
           </div>
         </div>
-  
-        <!-- Mitad derecha: Código y Botón -->
+
         <div class="room-section">
           <h2 class="section-title">Código de Sala</h2>
           <p class="room-code">{{ roomCode }}</p>
-  
-          <button class="action-button start-button" @click="startGame">
-            ¡INICIAR!
-          </button>
+
+          <button class="action-button" @click="copyCode">Copiar Código</button>
+          <button class="action-button start-button" @click="startGame">¡INICIAR PARTIDA!</button>
         </div>
       </div>
     </div>
   </div>
-</template>  
+</template>
 
 <script>
+import { gameService } from '../script/GameService'
+import { getAuth } from 'firebase/auth'
+
 export default {
-  name: "Lobby",
+  name: "CrearSala",
   data() {
     return {
-      players: [
-        { name: "Jugador 1", avatar: "avatar1.png" },
-        { name: "Jugador 2", avatar: "avatar2.png" },
-        { name: "Jugador 3", avatar: "avatar3.png" },
-        { name: "Jugador 4", avatar: "avatar4.png" },
-      ],
-      roomCode: "",
-      loading: false
-    };
+      jugadores: [],
+      roomCode: '',
+      apodo: ''
+    }
   },
-  created() {
-    this.roomCode = this.generateRoomCode();
-  },
-  methods: {
-    generateRoomCode() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let code = '';
-      for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return code;
-    },
-    startGame() {
-      console.log("Iniciar juego con código:", this.roomCode);
-    },
-    goBack() {
+  async created() {
+    const user = getAuth().currentUser
+    this.apodo = this.$route.query.apodo
+
+    if (user && this.apodo) {
+      await gameService.createSala(user.uid, this.apodo)
+      this.roomCode = gameService.roomCode
+      this.listenToSala()
+    } else {
       this.$router.push('/principal')
     }
+  },
+  methods: {
+    listenToSala() {
+      gameService.subscribeToSala(this.roomCode, (salaData) => {
+        if (salaData) {
+          this.jugadores = salaData.jugadores
+        } else {
+          this.$router.push('/principal')
+        }
+      })
+    },
+    copyCode() {
+      navigator.clipboard.writeText(this.roomCode)
+      alert('Código copiado: ' + this.roomCode)
+    },
+    async startGame() {
+      await gameService.startGame(this.roomCode)
+    },
+    goBack() {
+      gameService.cancelSubscription()
+      this.$router.push('/principal')
+    }
+  },
+  beforeUnmount() {
+    gameService.cancelSubscription()
   }
-};
+}
 </script>
 
 <style scoped>
