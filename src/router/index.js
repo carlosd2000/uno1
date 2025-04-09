@@ -5,6 +5,7 @@ import Login from '../components/Login.vue'
 import Principal from '../components/Principal.vue'
 import CrearSala from '../components/CrearSala.vue'
 import UnirseSala from '../components/UnirseSala.vue'
+import SalaEspera from '../components/SalaEspera.vue'
 const routes = [
   {
     path: '/',
@@ -27,14 +28,19 @@ const routes = [
     component: Principal
   },
   {
-    path: '/crearsala',
-    name: 'crearsala',
+    path: '/CrearSala',
+    name: 'CrearSala',
     component: CrearSala
   },
   {
     path: '/unirseSala',
     name: 'unirseSala',
     component: UnirseSala
+  },
+  {
+    path: '/SalaEspera',
+    name: 'SalaEspera',
+    component: SalaEspera
   }
 ]
 
