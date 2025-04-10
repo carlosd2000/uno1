@@ -75,4 +75,24 @@ export default {
   opacity: 0.9;
   transform: translateY(-2px);
 }
+
+@media screen and (min-width: 320px) {
+  .public-container {
+    padding: 10px;
+  }
+
+  .logo {
+    max-width: 180px;
+    margin-bottom: 30px;
+  }
+
+  .action-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+
+  .buttons-container {
+    gap: 15px;
+  }
+}
 </style>

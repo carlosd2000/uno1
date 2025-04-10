@@ -87,12 +87,11 @@ export default {
 /* Estilos generales */
 .public-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* ← vertical por defecto */
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   width: 100vw;
-  margin: 0;
   padding: 20px;
   text-align: center;
   background-color: #1e1e1e;
@@ -225,49 +224,27 @@ export default {
   max-width: 400px;
   width: 100%;
 }
-@media (orientation: landscape) and (min-width: 600px) {
+@media screen and (max-width: 932px) {
   .public-container {
-    flex-direction: row;
-    justify-content: center;
+    flex-direction: row; /* ← horizontal en móvil */
+    justify-content: space-evenly;
     align-items: center;
-    padding: 20px;
-    gap: 30px;
-    border-width: 10px;
   }
 
   .logo {
-    max-width: 120px;
-    margin-bottom: 0;
+    max-width: 150px;
+    margin-bottom: 0; /* evitá espacio innecesario en horizontal */
   }
 
   .title {
-    font-size: 1.4rem;
-    margin-bottom: 15px;
+    display: none; /* si no querés mostrar el título en móvil */
+    /* o lo podés mover dentro del formulario si preferís */
   }
 
   .form {
-    max-width: 320px;
-    gap: 15px;
-  }
-
-  .form-inputs {
-    gap: 15px;
-  }
-
-  .input {
-    padding: 8px;
-    font-size: 0.85rem;
-  }
-
-  .action-button {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
-
-  .alert {
-    font-size: 0.85rem;
-    padding: 8px;
+    max-width: 100%;
   }
 }
+
 
 </style>

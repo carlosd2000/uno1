@@ -239,43 +239,137 @@ export default {
 @media (orientation: landscape) and (min-width: 600px) {
   .public-container {
     flex-direction: row;
-    justify-content: center;
+    justify-content: space-evenly;
     align-items: center;
-    padding: 20px;
-    gap: 30px;
-    border-width: 10px;
+    padding: 30px;
   }
 
   .logo {
     margin-bottom: 0;
-    max-width: 120px;
+    max-width: 180px;
   }
 
   .auth-form {
-    max-width: 320px;
+    max-width: 380px;
   }
 
   .form-title {
-    font-size: 1.2rem;
-    margin-bottom: 15px;
+    font-size: 1.4rem;
   }
 
   .form-input {
-    padding: 8px;
-    font-size: 0.85rem;
+    padding: 10px;
+    font-size: 0.95rem;
   }
 
   .action-button {
-    padding: 8px 20px;
-    font-size: 0.85rem;
+    padding: 10px 24px;
+    font-size: 0.95rem;
   }
 
   .input-message {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 
   .error-message {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+@media screen and (max-height: 600px) {
+  .public-container {
+    padding: 4px;
+    border-width: 4px;
+    min-height: auto;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .logo {
+    max-width: 40px;
+    margin-bottom: 6px;
+  }
+
+  .form-title {
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .form-container {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .form-input {
+    padding: 6px;
+    font-size: 0.7rem;
+  }
+
+  .input-message {
+    font-size: 0.6rem;
+  }
+
+  .error-message {
+    font-size: 0.65rem;
+    margin: 6px 0;
+  }
+
+  .action-button {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    margin-top: 6px;
+  }
+
+  .back-button {
+    top: 4px;
+    left: 4px;
+    padding: 2px;
+  }
+
+  .back-button svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .public-container {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+  }
+
+  .logo {
+    max-width: 180px;
+    margin-bottom: 20px;
+  }
+
+  .auth-form {
+    max-width: 400px;
+    width: 100%;
+  }
+
+  .form-title {
+    font-size: 2rem;
+    margin-bottom: 25px;
+  }
+
+  .form-input {
+    padding: 14px;
+    font-size: 1rem;
+  }
+
+  .action-button {
+    padding: 14px 28px;
+    font-size: 1rem;
+  }
+
+  .input-message {
+    font-size: 0.8rem;
+  }
+
+  .error-message {
+    font-size: 0.9rem;
   }
 }
 
