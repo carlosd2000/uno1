@@ -29,10 +29,23 @@
         <!-- Zona central -->
         <div class="zona-central fade-in">
           <div class="mazo-cartas">
-            <img src="/img/carta-reverso.png" alt="Mazo" />
-            <img src="/img/carta_+4.png" alt="Carta actual" />
-          </div>
-          <button class="btn-comenzar pulse">COMENZAR</button>
+  <img src="/img/carta-reverso.png" alt="Mazo" />
+
+  <div v-if="!juegoComenzado">
+    <img src="/img/carta_+4.png" alt="Carta actual" />
+  </div>
+
+  <div v-else-if="juegoComenzado && cartaActual">
+  <Card :card-data="cartaActual" class="carta-central" />
+</div>
+</div>
+<button
+  v-if="!juegoComenzado"
+  class="btn-comenzar pulse"
+  @click="comenzarJuego"
+>
+  COMENZAR
+</button>
         </div>
   
         <!-- Jugador derecho -->
@@ -72,7 +85,8 @@
   </template>
   
   <script>
-  import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore'
+
   import { db } from '../firebase/config'
   import { gameService } from '../script/GameService'
   import { getAuth } from 'firebase/auth'
@@ -89,21 +103,31 @@
         roomCode: '',
         todasLasCartas: [],
         cartasPorJugador: {},
-        userId: ''
+        userId: '',
+        cartaActual: null,
+juegoComenzado: false
       }
     },
     created() {
-      const auth = getAuth()
-      this.userId = auth.currentUser?.uid || ''
-      this.roomCode = this.$route.query.roomCode
+  const auth = getAuth();
+  const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      this.userId = user.uid;
+      this.roomCode = this.$route.query.roomCode;
+
       if (this.roomCode) {
-        this.fetchCartas().then(() => {
-          this.listenToSala()
-        })
+        await this.fetchCartas();
+        this.listenToSala();
       } else {
-        this.$router.push('/principal')
+        this.$router.push('/principal');
       }
-    },
+
+      unsubscribe(); // Nos desuscribimos para que no quede escuchando
+    } else {
+      this.$router.push('/login'); // O lo que quieras hacer si no hay usuario
+    }
+  });
+},
     computed: {
       jugadorActual() {
         return this.jugadores.find(j => j.id_jugador === this.userId) || null
@@ -113,24 +137,69 @@
       }
     },
     methods: {
+      async asignarCartasSiNoExisten(jugadorId) {
+  const cartasRef = collection(db, `salas/${this.roomCode}/jugadores/${jugadorId}/cartas`);
+  const snapshot = await getDocs(cartasRef);
+
+  if (snapshot.empty) {
+    const cartas = this.obtenerCartasAleatorias(7);
+    for (let carta of cartas) {
+      const cartaId = crypto.randomUUID(); // Genera un ID único
+      await setDoc(doc(cartasRef, cartaId), carta); // Guardar en Firestore
+    }
+    return cartas;
+  } else {
+    return snapshot.docs.map(doc => doc.data());
+  }
+},
+
       async fetchCartas() {
         const cartasSnapshot = await getDocs(collection(db, 'cartasUNO'))
         this.todasLasCartas = cartasSnapshot.docs.map(doc => doc.data())
       },
-      listenToSala() {
-        gameService.subscribeToSala(this.roomCode, (salaData) => {
-          if (salaData) {
-            this.jugadores = salaData.jugadores
-            this.jugadores.forEach(jugador => {
-              if (!this.cartasPorJugador[jugador.id_jugador]) {
-                this.cartasPorJugador[jugador.id_jugador] = this.obtenerCartasAleatorias(7)
-              }
-            })
-          } else {
-            this.$router.push('/principal')
-          }
-        })
-      },
+
+      async comenzarJuego() {
+  const cartaAleatoria = this.obtenerCartasAleatorias(1)[0];
+
+  // Guarda la carta actual y el estado del juego en Firestore
+  await setDoc(doc(db, 'salas', this.roomCode), {
+    cartaActual: cartaAleatoria,
+    juegoComenzado: true
+  }, { merge: true }); // Merge para no sobrescribir otros datos
+},
+
+listenToSala() {
+  gameService.subscribeToSala(this.roomCode, async (salaData) => {
+    if (salaData) {
+      this.jugadores = salaData.jugadores;
+
+      // ACTUALIZA ESTOS DOS CAMPOS para que no se queden con valores previos
+      this.juegoComenzado = !!salaData.juegoComenzado;
+      this.cartaActual = salaData.juegoComenzado ? salaData.cartaActual : null;
+      console.log('SALA FIRESTORE:', salaData);
+
+      if (this.todasLasCartas.length === 0) {
+        await this.fetchCartas(); // por si no se cargaron aún
+      }
+
+      for (const jugador of salaData.jugadores) {
+        if (!this.cartasPorJugador[jugador.id_jugador]) {
+          const cartas = await this.asignarCartasSiNoExisten(jugador.id_jugador);
+
+          this.$set
+            ? this.$set(this.cartasPorJugador, jugador.id_jugador, cartas)
+            : this.cartasPorJugador = {
+                ...this.cartasPorJugador,
+                [jugador.id_jugador]: cartas
+              };
+        }
+      }
+    } else {
+      this.$router.push('/principal');
+    }
+  });
+},
+
       obtenerCartasAleatorias(cantidad) {
         const cartasMezcladas = [...this.todasLasCartas].sort(() => Math.random() - 0.5)
         return cartasMezcladas.slice(0, cantidad)
