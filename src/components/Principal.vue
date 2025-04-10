@@ -185,4 +185,47 @@ export default {
   width: 20px;
   height: 20px;
 }
+
+@media screen and (max-height: 480px) and (orientation: landscape) {
+  .public-container {
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 10px;
+    border-width: 10px;
+  }
+
+  .logo {
+    max-width: 100px;
+    margin-bottom: 0;
+  }
+
+  .auth-form {
+    max-width: 300px;
+  }
+
+  .avatar-section {
+    gap: 12px;
+  }
+
+  .form-input {
+    max-width: 250px;
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .custom-yellow {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .icono-boton {
+    width: 18px;
+    height: 18px;
+  }
+}
 </style>

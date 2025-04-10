@@ -254,4 +254,63 @@ export default {
     margin-bottom: 20px;
   }
 }
+@media screen and (max-height: 480px) and (orientation: landscape) {
+  .public-container {
+    flex-direction: row;
+    padding: 10px;
+    border-width: 10px;
+  }
+
+  .lobby-card {
+    height: auto;
+    padding: 10px;
+  }
+
+  .content {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .players-section, .room-section {
+    width: 48%;
+  }
+
+  .logo {
+    width: 90px;
+    top: 15px;
+    right: 15px;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+  }
+
+  .room-code {
+    font-size: 1.8rem;
+    margin: 20px 0;
+  }
+
+  .action-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+
+  .start-button {
+    font-size: 1rem;
+    padding: 12px 25px;
+  }
+
+  .avatar {
+    width: 35px;
+    height: 35px;
+  }
+
+  .player-item {
+    padding: 10px;
+  }
+}
 </style>

@@ -225,4 +225,49 @@ export default {
   max-width: 400px;
   width: 100%;
 }
+@media (orientation: landscape) and (min-width: 600px) {
+  .public-container {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    gap: 30px;
+    border-width: 10px;
+  }
+
+  .logo {
+    max-width: 120px;
+    margin-bottom: 0;
+  }
+
+  .title {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+  }
+
+  .form {
+    max-width: 320px;
+    gap: 15px;
+  }
+
+  .form-inputs {
+    gap: 15px;
+  }
+
+  .input {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+
+  .action-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+
+  .alert {
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+}
+
 </style>

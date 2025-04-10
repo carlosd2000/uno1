@@ -141,6 +141,7 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
+  transition: all 0.3s ease;
 }
 
 .back-button {
@@ -172,12 +173,9 @@ export default {
 }
 
 .form-title {
-  font-size: 2rem;
-  margin-bottom: 20px;
-  background: linear-gradient(to right, #ff416c, #ff4b2b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
+  color: #e9ecef;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
 }
 
 .form-container {
@@ -200,12 +198,6 @@ export default {
 
 .form-input::placeholder {
   color: #aaa;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #ff4b2b;
-  box-shadow: 0 0 5px rgba(255, 75, 43, 0.5);
 }
 
 .input-message {
@@ -243,4 +235,48 @@ export default {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+@media (orientation: landscape) and (min-width: 600px) {
+  .public-container {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    gap: 30px;
+    border-width: 10px;
+  }
+
+  .logo {
+    margin-bottom: 0;
+    max-width: 120px;
+  }
+
+  .auth-form {
+    max-width: 320px;
+  }
+
+  .form-title {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+  }
+
+  .form-input {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+
+  .action-button {
+    padding: 8px 20px;
+    font-size: 0.85rem;
+  }
+
+  .input-message {
+    font-size: 0.7rem;
+  }
+
+  .error-message {
+    font-size: 0.75rem;
+  }
+}
+
 </style>
