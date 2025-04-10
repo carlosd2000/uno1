@@ -42,20 +42,21 @@ export default {
     }
   },
   created() {
-    this.roomCode = this.$route.query.roomCode
-    if (this.roomCode) {
-      this.listenToSala()
-    } else {
-      this.$router.push('/principal')
-    }
-  },
-  methods: {
+  this.roomCode = this.$route.query.roomCode
+  if (this.roomCode) {
+    localStorage.setItem('roomCode', this.roomCode) // 🔥 guardar roomCode en espera también
+    this.listenToSala()
+  } else {
+    this.$router.push('/principal')
+  }
+},
+methods: {
     listenToSala() {
       gameService.subscribeToSala(this.roomCode, (salaData) => {
         if (salaData) {
           this.jugadores = salaData.jugadores
           if (salaData.status === 'in_progress') {
-            this.$router.push('/juego')
+            this.$router.push('/tablero')
           }
         } else {
           this.$router.push('/principal')

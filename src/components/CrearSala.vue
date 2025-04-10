@@ -52,6 +52,7 @@ export default {
     if (user && this.apodo) {
       await gameService.createSala(user.uid, this.apodo)
       this.roomCode = gameService.roomCode
+      localStorage.setItem('roomCode', this.roomCode) // 🔥 guardar roomCode al crear sala
       this.listenToSala()
     } else {
       this.$router.push('/principal')
@@ -73,6 +74,7 @@ export default {
     },
     async startGame() {
       await gameService.startGame(this.roomCode)
+      localStorage.setItem('roomCode', this.roomCode) // 🔥 guardar roomCode otra vez al iniciar
       this.$router.push('/tablero')
     },
     goBack() {
@@ -85,6 +87,7 @@ export default {
   }
 }
 </script>
+
 
 <style scoped>
 .public-container {
