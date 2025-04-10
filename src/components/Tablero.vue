@@ -6,23 +6,27 @@
         <div class="contador">Contador +0</div>
       </div>
   
-      <!-- Jugador superior (Jugador 4) -->
-      <div v-if="jugadores[3]" class="jugador-superior">
-        <p>{{ jugadores[3].apodo }}</p>
-        <div class="cartas-oponente" v-for="n in 3" :key="'p4' + n"></div>
-        <button class="btn-accion">+1</button>
+      <!-- Jugador superior -->
+      <div v-if="jugadoresOponentes[0]" class="jugador-superior">
+        <p>{{ jugadoresOponentes[0].apodo }}</p>
+        <div class="cartas-oponente">
+          <div v-for="n in 7" :key="'top' + n" class="carta-oculta"></div>
+        </div>
       </div>
       <div v-else class="espacio-vacio-superior"></div>
   
-      <!-- Jugadores laterales y centro -->
+      <!-- Laterales y centro -->
       <div class="fila-central">
-        <div v-if="jugadores[2]" class="jugador-lateral">
-          <p>{{ jugadores[2].apodo }}</p>
-          <div class="cartas-oponente" v-for="n in 3" :key="'p3' + n"></div>
-          <button class="btn-accion">+2</button>
+        <!-- Jugador izquierdo -->
+        <div v-if="jugadoresOponentes[1]" class="jugador-lateral">
+          <p>{{ jugadoresOponentes[1].apodo }}</p>
+          <div class="cartas-lateral">
+            <div v-for="n in 7" :key="'left' + n" class="carta-oculta"></div>
+          </div>
         </div>
         <div v-else class="espacio-vacio"></div>
   
+        <!-- Zona central -->
         <div class="zona-central fade-in">
           <div class="mazo-cartas">
             <img src="/img/carta-reverso.png" alt="Mazo" />
@@ -31,28 +35,27 @@
           <button class="btn-comenzar pulse">COMENZAR</button>
         </div>
   
-        <div v-if="jugadores[1]" class="jugador-lateral">
-          <p>{{ jugadores[1].apodo }}</p>
-          <div class="cartas-oponente" v-for="n in 3" :key="'p2' + n"></div>
-          <button class="btn-accion">+3</button>
+        <!-- Jugador derecho -->
+        <div v-if="jugadoresOponentes[2]" class="jugador-lateral">
+          <p>{{ jugadoresOponentes[2].apodo }}</p>
+          <div class="cartas-lateral">
+            <div v-for="n in 7" :key="'right' + n" class="carta-oculta"></div>
+          </div>
         </div>
         <div v-else class="espacio-vacio"></div>
       </div>
   
-      <!-- Jugador inferior -->
-      <div v-if="jugadores[0]" class="jugador-inferior">
-        <p>{{ jugadores[0].apodo }}</p>
+      <!-- Jugador inferior (yo) -->
+      <div v-if="jugadorActual" class="jugador-inferior">
+        <p>{{ jugadorActual.apodo }}</p>
         <div class="contenedor-jugador">
           <div class="cartas-jugador fade-in-bottom">
-            <!-- 🔥 Aquí mostramos las 7 cartas random usando tu componente Card.vue -->
             <Card
-              v-for="(carta, index) in cartasPorJugador[jugadores[0]?.id_jugador] || []"
+              v-for="(carta, index) in cartasPorJugador[userId] || []"
               :key="index"
               :card-data="carta"
             />
           </div>
-  
-          
         </div>
       </div>
   
@@ -61,7 +64,7 @@
         <button>🔊 UNO</button>
       </div>
   
-      <!-- Botón Salir -->
+      <!-- Botón salir -->
       <div class="salir-btn">
         <button @click="salirPartida">🚪 Salir</button>
       </div>
@@ -72,7 +75,8 @@
   import { collection, getDocs } from 'firebase/firestore'
   import { db } from '../firebase/config'
   import { gameService } from '../script/GameService'
-  import Card from '../components/Card.vue' // 🚀 Importamos tu componente de cartas
+  import { getAuth } from 'firebase/auth'
+  import Card from '../components/Card.vue'
   
   export default {
     name: "Tablero",
@@ -84,10 +88,13 @@
         jugadores: [],
         roomCode: '',
         todasLasCartas: [],
-        cartasPorJugador: {}
-      };
+        cartasPorJugador: {},
+        userId: ''
+      }
     },
     created() {
+      const auth = getAuth()
+      this.userId = auth.currentUser?.uid || ''
       this.roomCode = this.$route.query.roomCode
       if (this.roomCode) {
         this.fetchCartas().then(() => {
@@ -95,6 +102,14 @@
         })
       } else {
         this.$router.push('/principal')
+      }
+    },
+    computed: {
+      jugadorActual() {
+        return this.jugadores.find(j => j.id_jugador === this.userId) || null
+      },
+      jugadoresOponentes() {
+        return this.jugadores.filter(j => j.id_jugador !== this.userId)
       }
     },
     methods: {
@@ -106,9 +121,10 @@
         gameService.subscribeToSala(this.roomCode, (salaData) => {
           if (salaData) {
             this.jugadores = salaData.jugadores
-  
             this.jugadores.forEach(jugador => {
-              this.cartasPorJugador[jugador.id_jugador] = this.obtenerCartasAleatorias(7)
+              if (!this.cartasPorJugador[jugador.id_jugador]) {
+                this.cartasPorJugador[jugador.id_jugador] = this.obtenerCartasAleatorias(7)
+              }
             })
           } else {
             this.$router.push('/principal')
@@ -132,8 +148,8 @@
   }
   </script>
   
-<style scoped>
-  /* Estilos principales */
+  <style scoped>
+  /* 🔥 ESTILOS 🔥 */
   .tablero {
     display: flex;
     flex-direction: column;
@@ -170,12 +186,24 @@
   
   .jugador-superior {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
+    gap: 4px;
     color: white;
     padding: 0.5rem 0;
     min-height: 80px;
+  }
+  
+  .cartas-oponente {
+    display: flex;
+    gap: 4px;
+  }
+  
+  .carta-oculta {
+    width: 60px;
+    height: 90px;
+    background-color: gray;
+    border-radius: 6px;
   }
   
   .fila-central {
@@ -190,16 +218,27 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
     color: white;
-    width: 150px;
+    width: 140px;
+    height: auto;
+    flex: none;
   }
   
-  .cartas-oponente {
-    width: 30px;
-    height: 40px;
-    background: black;
-    border-radius: 4px;
+  .cartas-lateral {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0px;
+    padding: 0;
+    width: 140px;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .cartas-lateral .carta-oculta {
+    transform: rotate(90deg);
+    width: 60px;
+    height: 90px;
   }
   
   .zona-central {
@@ -237,8 +276,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    padding-bottom: 1rem;
-    padding-top: 1rem;
+    padding: 1rem 0;
   }
   
   .contenedor-jugador {
@@ -253,9 +291,7 @@
     display: flex;
     overflow-x: auto;
     gap: 0.3rem;
-    padding: 0 0.5rem;
     justify-content: center;
-    flex-wrap: nowrap;
     max-width: 100%;
     scroll-behavior: smooth;
   }
@@ -265,23 +301,6 @@
     border-radius: 6px;
     transition: transform 0.3s ease;
     flex-shrink: 0;
-  }
-  
-  .acciones-especiales {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: center;
-  }
-  
-  .acciones-especiales button,
-  .btn-accion {
-    background: #fff;
-    border: none;
-    padding: 0.3rem 0.6rem;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
   }
   
   .audio-btn {
@@ -299,7 +318,6 @@
     cursor: pointer;
   }
   
-  /* Botón Salir */
   .salir-btn {
     position: absolute;
     bottom: 1rem;
@@ -321,18 +339,12 @@
     background-color: #d9363e;
   }
   
-  /* Espacios vacíos */
   .espacio-vacio,
   .espacio-vacio-superior {
     width: 150px;
     height: 200px;
   }
   
-  .espacio-vacio-superior {
-    min-height: 80px;
-  }
-  
-  /* Animaciones */
   .pulse {
     animation: pulseAnim 1.5s infinite;
   }
@@ -362,10 +374,5 @@
     from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
-  
-  .carta-hover:hover {
-    transform: translateY(-10px) scale(1.05);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  }
   </style>
-  
+    
