@@ -1,6 +1,6 @@
 <template>
   <div class="public-container">
-    <button class="back-button" @click="goBack" aria-label="Volver a principal">
+    <button class="back-button" @click="goBack" aria-label="Volver al principal">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 12H5M12 19l-7-7 7-7" />
       </svg>
@@ -34,7 +34,7 @@
 
 <script>
 import { gameService } from '../script/GameService'
-import { getAuth } from 'firebase/auth'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 
 export default {
   name: "CrearSala",
@@ -45,18 +45,34 @@ export default {
       apodo: ''
     }
   },
-  async created() {
-    const user = getAuth().currentUser
-    this.apodo = this.$route.query.apodo
+  created() {
+    const auth = getAuth()
 
-    if (user && this.apodo) {
-      await gameService.createSala(user.uid, this.apodo)
-      this.roomCode = gameService.roomCode
-      localStorage.setItem('roomCode', this.roomCode) // 🔥 guardar roomCode al crear sala
-      this.listenToSala()
-    } else {
-      this.$router.push('/principal')
-    }
+    // 🔥 Esperar a que Firebase confirme el usuario
+    onAuthStateChanged(auth, async (user) => {
+      this.apodo = this.$route.query.apodo
+      this.roomCode = this.$route.query.roomCode || ''
+
+      if (user) {
+        if (this.roomCode) {
+          // 🔥 Si ya hay roomCode en URL (por recarga)
+          this.listenToSala()
+        } else if (this.apodo) {
+          // 🔥 Si no hay roomCode (primer creación)
+          await gameService.createSala(user.uid, this.apodo)
+          this.roomCode = gameService.roomCode
+
+          // 🔥 Actualizar URL para agregar el roomCode
+          this.$router.replace({ path: '/crearsala', query: { apodo: this.apodo, roomCode: this.roomCode } })
+
+          this.listenToSala()
+        } else {
+          this.$router.push('/principal')
+        }
+      } else {
+        this.$router.push('/principal')
+      }
+    })
   },
   methods: {
     listenToSala() {
@@ -74,8 +90,8 @@ export default {
     },
     async startGame() {
       await gameService.startGame(this.roomCode)
-      localStorage.setItem('roomCode', this.roomCode) // 🔥 guardar roomCode otra vez al iniciar
-      this.$router.push('/tablero')
+      // 🔥 Iniciar partida ➔ Ir al tablero
+      this.$router.push({ path: '/tablero', query: { roomCode: this.roomCode } })
     },
     goBack() {
       gameService.cancelSubscription()
@@ -87,7 +103,6 @@ export default {
   }
 }
 </script>
-
 
 <style scoped>
 .public-container {
@@ -181,19 +196,6 @@ export default {
   border: 2px solid #bf734f;
 }
 
-.player-input {
-  flex-grow: 1;
-  border: none;
-  background-color: transparent;
-  color: #e9ecef;
-  font-size: 1rem;
-  padding: 8px;
-}
-
-.player-input::placeholder {
-  color: #aaa;
-}
-
 .room-code {
   font-size: 2.5rem;
   font-weight: bold;
@@ -233,25 +235,20 @@ export default {
     flex-direction: column;
     gap: 30px;
   }
-  
+
   .players-section, .room-section {
     width: 100%;
   }
-  
+
   .logo {
     width: 100px;
   }
-  
+
   .room-code {
     font-size: 2rem;
     margin: 20px 0;
   }
-  
-  .start-button {
-    font-size: 1rem;
-    padding: 12px 30px;
-  }
-  
+
   .section-title {
     font-size: 1.5rem;
     margin-bottom: 20px;

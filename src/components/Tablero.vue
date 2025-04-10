@@ -79,7 +79,6 @@
   </template>
   
   <script>
-  import { tableroService } from '../script/TableroService'
   import { gameService } from '../script/GameService'
   import { getAuth } from 'firebase/auth'
   
@@ -91,17 +90,10 @@
         roomCode: ''
       };
     },
-    async created() {
-      const user = getAuth().currentUser
-  
-      if (user) {
-        const savedRoomCode = localStorage.getItem('roomCode') // 🔥 Buscamos roomCode guardado
-        if (savedRoomCode) {
-          this.roomCode = savedRoomCode
-          this.listenToSala()
-        } else {
-          this.$router.push('/principal')
-        }
+    created() {
+      this.roomCode = this.$route.query.roomCode // 🔥 leer roomCode de URL
+      if (this.roomCode) {
+        this.listenToSala()
       } else {
         this.$router.push('/principal')
       }
@@ -118,9 +110,8 @@
       },
       salirPartida() {
         if (confirm('¿Estás seguro que quieres salir de la partida?')) {
-          localStorage.removeItem('roomCode')  // 🔥 Borrar roomCode
-          gameService.cancelSubscription()     // 🔥 Cancelar suscripción
-          this.$router.push('/principal')       // 🔥 Ir a Principal
+          gameService.cancelSubscription()
+          this.$router.push('/principal')
         }
       }
     },
@@ -129,6 +120,7 @@
     }
   }
   </script>
+  
   
   <style scoped>
   /* Estilos principales */
