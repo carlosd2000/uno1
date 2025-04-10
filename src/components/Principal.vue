@@ -1,3 +1,4 @@
+
 <template>
   <div class="public-container">
     <button class="back-button" @click="logout" aria-label="Cerrar sesión">

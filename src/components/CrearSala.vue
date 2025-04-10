@@ -73,6 +73,7 @@ export default {
     },
     async startGame() {
       await gameService.startGame(this.roomCode)
+      this.$router.push('/tablero')
     },
     goBack() {
       gameService.cancelSubscription()

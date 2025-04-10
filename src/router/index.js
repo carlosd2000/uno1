@@ -6,6 +6,7 @@ import Principal from '../components/Principal.vue'
 import CrearSala from '../components/CrearSala.vue'
 import UnirseSala from '../components/UnirseSala.vue'
 import SalaEspera from '../components/SalaEspera.vue'
+import Tablero from '../components/Tablero.vue'
 const routes = [
   {
     path: '/',
@@ -41,7 +42,13 @@ const routes = [
     path: '/SalaEspera',
     name: 'SalaEspera',
     component: SalaEspera
+  },
+  {
+    path: '/tablero',
+    name: 'Tablero',
+    component: Tablero
   }
+
 ]
 
 const router = createRouter({
