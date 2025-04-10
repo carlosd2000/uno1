@@ -35,7 +35,7 @@
     <img src="/img/carta_+4.png" alt="Carta actual" />
   </div>
 
-  <div v-else-if="juegoComenzado && cartaActual">
+<div v-else-if="juegoComenzado && cartaActual">
   <Card :card-data="cartaActual" class="carta-central" />
 </div>
 </div>
@@ -173,25 +173,27 @@ listenToSala() {
     if (salaData) {
       this.jugadores = salaData.jugadores;
 
-      // ACTUALIZA ESTOS DOS CAMPOS para que no se queden con valores previos
       this.juegoComenzado = !!salaData.juegoComenzado;
       this.cartaActual = salaData.juegoComenzado ? salaData.cartaActual : null;
-      console.log('SALA FIRESTORE:', salaData);
 
       if (this.todasLasCartas.length === 0) {
-        await this.fetchCartas(); // por si no se cargaron aún
+        await this.fetchCartas();
       }
 
       for (const jugador of salaData.jugadores) {
-        if (!this.cartasPorJugador[jugador.id_jugador]) {
+        const yaTieneCartas = this.cartasPorJugador[jugador.id_jugador]?.length > 0;
+
+        if (!yaTieneCartas) {
           const cartas = await this.asignarCartasSiNoExisten(jugador.id_jugador);
 
-          this.$set
-            ? this.$set(this.cartasPorJugador, jugador.id_jugador, cartas)
-            : this.cartasPorJugador = {
-                ...this.cartasPorJugador,
-                [jugador.id_jugador]: cartas
-              };
+          if (this.$set) {
+            this.$set(this.cartasPorJugador, jugador.id_jugador, cartas);
+          } else {
+            this.cartasPorJugador = {
+              ...this.cartasPorJugador,
+              [jugador.id_jugador]: cartas
+            };
+          }
         }
       }
     } else {
