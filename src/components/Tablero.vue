@@ -1,12 +1,12 @@
 <template>
     <div class="tablero">
-      <!-- Historial y contador -->
+      <!-- Fila superior -->
       <div class="fila-superior">
         <div class="historial">Historial de movimiento</div>
         <div class="contador">Contador +0</div>
       </div>
   
-      <!-- Jugador superior (Player 4) o espacio vacío -->
+      <!-- Jugador superior (Jugador 4) -->
       <div v-if="jugadores[3]" class="jugador-superior">
         <p>{{ jugadores[3].apodo }}</p>
         <div class="cartas-oponente" v-for="n in 3" :key="'p4' + n"></div>
@@ -16,7 +16,6 @@
   
       <!-- Jugadores laterales y centro -->
       <div class="fila-central">
-        <!-- Jugador izquierdo (Player 3) o espacio vacío -->
         <div v-if="jugadores[2]" class="jugador-lateral">
           <p>{{ jugadores[2].apodo }}</p>
           <div class="cartas-oponente" v-for="n in 3" :key="'p3' + n"></div>
@@ -24,7 +23,6 @@
         </div>
         <div v-else class="espacio-vacio"></div>
   
-        <!-- Zona central -->
         <div class="zona-central fade-in">
           <div class="mazo-cartas">
             <img src="/img/carta-reverso.png" alt="Mazo" />
@@ -33,7 +31,6 @@
           <button class="btn-comenzar pulse">COMENZAR</button>
         </div>
   
-        <!-- Jugador derecho (Player 2) o espacio vacío -->
         <div v-if="jugadores[1]" class="jugador-lateral">
           <p>{{ jugadores[1].apodo }}</p>
           <div class="cartas-oponente" v-for="n in 3" :key="'p2' + n"></div>
@@ -42,25 +39,20 @@
         <div v-else class="espacio-vacio"></div>
       </div>
   
-      <!-- Jugador inferior (Player 1) -->
+      <!-- Jugador inferior -->
       <div v-if="jugadores[0]" class="jugador-inferior">
         <p>{{ jugadores[0].apodo }}</p>
         <div class="contenedor-jugador">
           <div class="cartas-jugador fade-in-bottom">
-            <img src="/img/carta_+4.png" alt="Carta 1" class="carta-hover" />
-            <img src="/img/carta-1-verde.png" alt="Carta 2" class="carta-hover" />
-            <img src="/img/carta-7-azul.jpg" alt="Carta 3" class="carta-hover" />
-            <img src="/img/carta-salto.jpg" alt="Carta 4" class="carta-hover" />
-            <img src="/img/carta-5-amarillo.png" alt="Carta 5" class="carta-hover" />
-            <img src="/img/carta-0-roja.jpg" alt="Carta 6" class="carta-hover" />
-            <img src="/img/carta-8-verde.jpg" alt="Carta 7" class="carta-hover" />
+            <!-- 🔥 Aquí mostramos las 7 cartas random usando tu componente Card.vue -->
+            <Card
+              v-for="(carta, index) in cartasPorJugador[jugadores[0]?.id_jugador] || []"
+              :key="index"
+              :card-data="carta"
+            />
           </div>
-          <div class="acciones-especiales">
-            <button>+4</button>
-            <button>🎨</button>
-            <button>+2</button>
-            <button>⛔</button>
-          </div>
+  
+          
         </div>
       </div>
   
@@ -71,42 +63,61 @@
   
       <!-- Botón Salir -->
       <div class="salir-btn">
-        <button @click="salirPartida">
-          🚪 Salir
-        </button>
+        <button @click="salirPartida">🚪 Salir</button>
       </div>
     </div>
   </template>
   
   <script>
+  import { collection, getDocs } from 'firebase/firestore'
+  import { db } from '../firebase/config'
   import { gameService } from '../script/GameService'
-  import { getAuth } from 'firebase/auth'
+  import Card from '../components/Card.vue' // 🚀 Importamos tu componente de cartas
   
   export default {
     name: "Tablero",
+    components: {
+      Card
+    },
     data() {
       return {
         jugadores: [],
-        roomCode: ''
+        roomCode: '',
+        todasLasCartas: [],
+        cartasPorJugador: {}
       };
     },
     created() {
-      this.roomCode = this.$route.query.roomCode // 🔥 leer roomCode de URL
+      this.roomCode = this.$route.query.roomCode
       if (this.roomCode) {
-        this.listenToSala()
+        this.fetchCartas().then(() => {
+          this.listenToSala()
+        })
       } else {
         this.$router.push('/principal')
       }
     },
     methods: {
+      async fetchCartas() {
+        const cartasSnapshot = await getDocs(collection(db, 'cartasUNO'))
+        this.todasLasCartas = cartasSnapshot.docs.map(doc => doc.data())
+      },
       listenToSala() {
         gameService.subscribeToSala(this.roomCode, (salaData) => {
           if (salaData) {
             this.jugadores = salaData.jugadores
+  
+            this.jugadores.forEach(jugador => {
+              this.cartasPorJugador[jugador.id_jugador] = this.obtenerCartasAleatorias(7)
+            })
           } else {
             this.$router.push('/principal')
           }
         })
+      },
+      obtenerCartasAleatorias(cantidad) {
+        const cartasMezcladas = [...this.todasLasCartas].sort(() => Math.random() - 0.5)
+        return cartasMezcladas.slice(0, cantidad)
       },
       salirPartida() {
         if (confirm('¿Estás seguro que quieres salir de la partida?')) {
@@ -121,8 +132,7 @@
   }
   </script>
   
-  
-  <style scoped>
+<style scoped>
   /* Estilos principales */
   .tablero {
     display: flex;

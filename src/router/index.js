@@ -52,7 +52,7 @@ const routes = [
   },
   {
     path: '/cardList',
-    name: 'Tablero',
+    name: 'Cardlist',
     component: cardList
   }
 
