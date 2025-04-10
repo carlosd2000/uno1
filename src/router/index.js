@@ -7,6 +7,8 @@ import CrearSala from '../components/CrearSala.vue'
 import UnirseSala from '../components/UnirseSala.vue'
 import SalaEspera from '../components/SalaEspera.vue'
 import Tablero from '../components/Tablero.vue'
+import cardList from '../components/CardList.vue'
+
 const routes = [
   {
     path: '/',
@@ -47,7 +49,13 @@ const routes = [
     path: '/tablero',
     name: 'Tablero',
     component: Tablero
+  },
+  {
+    path: '/cardList',
+    name: 'Tablero',
+    component: cardList
   }
+
 
 ]
 
