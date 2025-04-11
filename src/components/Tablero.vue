@@ -5,7 +5,7 @@
       <router-link to="/historial" class="historial-link" title="Ver historial de partidas">
         Historial de partidas
       </router-link>
-      <div class="contador">Contador +0</div>
+      <div class="contador">Contador +{{ contador }}</div>
     </div>
 
     <!-- Jugador superior -->
@@ -19,7 +19,6 @@
 
     <!-- Fila central -->
     <div class="fila-central">
-      <!-- Jugador izquierdo -->
       <div v-if="jugadoresOponentes[1]" class="jugador-lateral">
         <p>{{ jugadoresOponentes[1].apodo }}</p>
         <div class="cartas-lateral">
@@ -28,29 +27,23 @@
       </div>
       <div v-else class="espacio-vacio"></div>
 
-      <!-- Zona central -->
       <div class="zona-central fade-in">
         <div class="mazo-cartas">
           <img src="/img/carta-reverso.png" alt="Mazo" class="mazo-imagen" @click="robarCarta" />
-
           <div v-if="!juegoComenzado">
             <img src="/img/carta_+4.png" alt="Carta actual" />
           </div>
-
-          <div v-else-if="juegoComenzado && cartaActual">
+          <div v-else-if="cartaActual">
             <Card :card-data="cartaActual" class="carta-central" />
           </div>
         </div>
+        <button v-if="!juegoComenzado" class="btn-comenzar pulse" @click="comenzarJuego">COMENZAR</button>
 
-        <button v-if="!juegoComenzado" class="btn-comenzar pulse" @click="comenzarJuego">
-          COMENZAR
-        </button>
         <h2 v-if="jugadorDelTurnoActual" class="text-xl font-bold text-center">
-  Turno de: <span class="text-purple-500">{{ jugadorDelTurnoActual.apodo }}</span>
-</h2>
+          Turno de: <span class="text-purple-500">{{ jugadorDelTurnoActual.apodo }}</span>
+        </h2>
       </div>
 
-      <!-- Jugador derecho -->
       <div v-if="jugadoresOponentes[2]" class="jugador-lateral">
         <p>{{ jugadoresOponentes[2].apodo }}</p>
         <div class="cartas-lateral">
@@ -66,42 +59,31 @@
       <div class="contenedor-jugador">
         <div class="cartas-jugador fade-in-bottom">
           <Card
-  v-for="(carta, index) in cartasJugadorActual"
-  :key="index"
-  :card-data="carta"
-  @click="manejarClickCarta(carta, index)"
-  :class="{ 'opacity-50 pointer-events-none': !esMiTurno }"
-/>
+            v-for="(carta, index) in cartasJugadorActual"
+            :key="index"
+            :card-data="carta"
+            @click="manejarClickCarta(carta, index)"
+            :class="{ 'opacity-50 pointer-events-none': !esMiTurno }"
+          />
         </div>
       </div>
     </div>
 
-    <!-- Botón de audio -->
+    <!-- Botones -->
     <div class="audio-btn">
       <button>🔊 UNO</button>
     </div>
-
-    <!-- Botón salir -->
     <div class="salir-btn">
       <button @click="salirPartida">🚪 Salir</button>
     </div>
 
-    <!-- Modal para elegir color -->
+    <!-- Modal seleccionar color -->
     <div v-if="mostrarModalColor" class="modal-color">
       <div class="modal-contenido">
         <h3 class="titulo-modal">Selecciona un color</h3>
         <div class="colores">
-          <div class="color-item">
-            <button class="color-btn rojo" @click="elegirColor('rojo')"></button>
-          </div>
-          <div class="color-item">
-            <button class="color-btn verde" @click="elegirColor('verde')"></button>
-          </div>
-          <div class="color-item">
-            <button class="color-btn amarillo" @click="elegirColor('amarillo')"></button>
-          </div>
-          <div class="color-item">
-            <button class="color-btn azul" @click="elegirColor('azul')"></button>
+          <div class="color-item" v-for="color in colores" :key="color">
+            <button :class="['color-btn', color]" @click="elegirColor(color)"></button>
           </div>
         </div>
       </div>
@@ -131,13 +113,15 @@ export default {
       mostrarModalColor: false,
       cartaPendiente: null,
       turnoActual: null,
+      contador: 0,
+      colores: ['rojo', 'verde', 'amarillo', 'azul'],
       unsubscribeMazoJugador: null,
       unsubscribeMazoPartida: null
     }
   },
   created() {
     const auth = getAuth()
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    auth.onAuthStateChanged(async (user) => {
       if (user) {
         this.userId = user.uid
         this.roomCode = this.$route.query.roomCode
@@ -148,7 +132,6 @@ export default {
         } else {
           this.$router.push('/principal')
         }
-        unsubscribe()
       } else {
         this.$router.push('/login')
       }
@@ -165,9 +148,8 @@ export default {
       return this.turnoActual === this.userId
     },
     jugadorDelTurnoActual() {
-    return this.jugadores.find(j => j.id_jugador === this.turnoActual) || null;
-  }
-
+      return this.jugadores.find(j => j.id_jugador === this.turnoActual) || null
+    }
   },
   methods: {
     listenToSala() {
@@ -177,6 +159,7 @@ export default {
         if (data) {
           this.juegoComenzado = data.juegoComenzado
           this.turnoActual = data.turnoActual
+          this.contador = data.contador || 0
         }
       })
 
@@ -199,37 +182,56 @@ export default {
       const cartas = await tableroService.fetchCartas()
       await tableroService.comenzarJuego(this.jugadores, cartas, this.roomCode)
     },
-    async manejarClickCarta(carta, index) {
+    async manejarClickCarta(carta) {
       if (!this.esMiTurno || !this.juegoComenzado) return
 
+      if (this.contador > 0) {
+        if ((this.cartaActual.valor === 'roba 2' && carta.valor !== 'roba 2') ||
+            (this.cartaActual.valor === 'comodín +4' && carta.valor !== 'comodín +4')) {
+          await this.comerAcumulado()
+          return
+        }
+      }
+
       if (tableroService.esCartaValida(this.cartaActual, carta)) {
+        if (carta.valor === 'roba 2') {
+          await tableroService.actualizarContador(this.roomCode, this.contador + 2)
+        } else if (carta.valor === 'comodín +4') {
+          await tableroService.actualizarContador(this.roomCode, this.contador + 4)
+        }
+
         if (carta.tipo === "comodín" || carta.valor === "comodín +4") {
           this.cartaPendiente = { carta }
           this.mostrarModalColor = true
         } else {
-          await this.jugarCarta(carta)
+          await tableroService.jugarCarta(this.roomCode, this.userId, carta)
+          await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
         }
       }
-    },
-    async jugarCarta(cartaAColocar, cartaOriginal = null) {
-      const cartaParaEliminar = cartaOriginal || cartaAColocar
-      await tableroService.jugarCarta(this.roomCode, this.userId, cartaAColocar, cartaParaEliminar)
-      await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
     },
     async elegirColor(color) {
       if (!this.cartaPendiente) return
       const { carta } = this.cartaPendiente
-
       this.mostrarModalColor = false
       this.cartaPendiente = null
-
-      // 🔥 Aquí llamamos a la nueva función que actualiza también el color de la última carta en mazo
-      await tableroService.jugarComodinConColor(this.roomCode, this.userId, carta, color, this.jugadores)
+      await tableroService.jugarComodinConColor(this.roomCode, this.userId, carta, color)
+      await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
     },
     async robarCarta() {
       if (!this.esMiTurno || !this.juegoComenzado) return
-      await tableroService.actualizarMazoRobarYJugador(this.roomCode, this.userId)
+      const cantidad = this.contador || 1
+      for (let i = 0; i < cantidad; i++) {
+        await tableroService.robarCarta(this.roomCode, this.userId)
+      }
+      await tableroService.actualizarContador(this.roomCode, 0)
       await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
+    },
+    async comerAcumulado() {
+      if (this.contador > 0) {
+        await tableroService.comerAcumulado(this.roomCode, this.userId, this.contador)
+        await tableroService.actualizarContador(this.roomCode, 0)
+        await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
+      }
     },
     salirPartida() {
       this.$router.push('/principal')

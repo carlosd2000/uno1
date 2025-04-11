@@ -1,235 +1,199 @@
-// Importar Firebase
+// tableroService.js
 import { db } from '../firebase/config'
-import { collection, doc, getDoc, getDocs, updateDoc, setDoc, arrayUnion, arrayRemove, onSnapshot } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from 'firebase/firestore'
 
 class TableroService {
   constructor() {
     this.salasCollection = collection(db, 'salas')
   }
 
-  // ========================
-  // 🚀 Funciones de gestión de cartas
-  // ========================
-
-  async fetchCartas() {
-    const cartasSnapshot = await getDocs(collection(db, 'cartasUNO'))
-    return cartasSnapshot.docs.map(doc => doc.data())
+  // 🔥 Escuchar el mazo de un jugador
+  escucharMazoJugador(roomCode, userId, callback) {
+    const ref = doc(db, `salas/${roomCode}/mazos/mazojugador_${userId}`)
+    return onSnapshot(ref, (snap) => {
+      const data = snap.data()
+      callback(data?.cartas || [])
+    })
   }
 
-  async comenzarJuego(jugadores, todasLasCartas, roomCode) {
-    if (todasLasCartas.length === 0) {
-      throw new Error("No hay cartas disponibles")
-    }
+  // 🔥 Escuchar el mazo de la partida
+  escucharMazoPartida(roomCode, callback) {
+    const ref = doc(db, `salas/${roomCode}/mazos/mazopartida`)
+    return onSnapshot(ref, (snap) => {
+      const data = snap.data()
+      callback(data?.cartas || [])
+    })
+  }
 
-    const mazoMezclado = [...todasLasCartas].sort(() => Math.random() - 0.5)
+  // 🔥 Traer todas las cartas UNO (una sola vez)
+  async fetchCartas() {
+    const snapshot = await getDocs(collection(db, 'cartasUNO'))
+    return snapshot.docs.map(doc => doc.data())
+  }
+
+  // 🔥 Empezar la partida
+  async comenzarJuego(jugadores, cartas, roomCode) {
+    const mazoMezclado = [...cartas].sort(() => Math.random() - 0.5)
     const cartasPorJugador = {}
     const cartasParaRobar = []
 
     jugadores.forEach(jugador => {
       cartasPorJugador[jugador.id_jugador] = mazoMezclado.splice(0, 7)
     })
-
     cartasParaRobar.push(...mazoMezclado)
 
     const cartaInicial = cartasParaRobar.pop()
-    if (!cartaInicial) {
-      throw new Error("No se pudo obtener carta inicial")
+
+    const batch = []
+
+    // Guardar mazo del jugador
+    for (const idJugador in cartasPorJugador) {
+      const mazoJugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${idJugador}`)
+      batch.push(setDoc(mazoJugadorRef, {
+        cartas: cartasPorJugador[idJugador],
+        cantidad: cartasPorJugador[idJugador].length
+      }))
     }
 
-    const salaRef = doc(this.salasCollection, roomCode)
-    await updateDoc(salaRef, {
+    // Guardar mazo para robar
+    const mazoRobarRef = doc(db, `salas/${roomCode}/mazos/mazorobar`)
+    batch.push(setDoc(mazoRobarRef, {
+      cartas: cartasParaRobar,
+      cantidad: cartasParaRobar.length
+    }))
+
+    // Guardar mazo de partida
+    const mazoPartidaRef = doc(db, `salas/${roomCode}/mazos/mazopartida`)
+    batch.push(setDoc(mazoPartidaRef, {
+      cartas: [cartaInicial],
+      cantidad: 1
+    }))
+
+    // Actualizar sala
+    const salaRef = doc(db, 'salas', roomCode)
+    batch.push(updateDoc(salaRef, {
       juegoComenzado: true,
-      turnoActual: jugadores[0]?.id_jugador || null
+      turnoActual: jugadores[0]?.id_jugador || null,
+      contador: 0
+    }))
+
+    await Promise.all(batch)
+  }
+
+  // 🔥 Validar si una carta puede ser jugada
+  esCartaValida(cartaActual, cartaSeleccionada) {
+    if (!cartaActual) return false
+    return cartaSeleccionada.color === cartaActual.color || 
+           cartaSeleccionada.valor === cartaActual.valor || 
+           cartaSeleccionada.color === 'negro'
+  }
+
+  // 🔥 Jugar una carta normal
+  async jugarCarta(roomCode, userId, carta) {
+    const mazoJugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${userId}`)
+    const mazoPartidaRef = doc(db, `salas/${roomCode}/mazos/mazopartida`)
+
+    await updateDoc(mazoJugadorRef, {
+      cartas: arrayRemove(carta)
     })
 
-    await this.inicializarMazos(roomCode, jugadores, cartasParaRobar, cartasPorJugador, cartaInicial)
-
-    return { cartasParaRobar, cartasPorJugador }
-  }
-
-  async inicializarMazos(roomCode, jugadores, cartasParaRobar, cartasPorJugador, cartaInicial) {
-    const mazosCollection = collection(db, `salas/${roomCode}/mazos`)
-
-    await setDoc(doc(mazosCollection, 'mazorobar'), {
-      cantidad: cartasParaRobar.length,
-      cartas: cartasParaRobar
-    })
-
-    await setDoc(doc(mazosCollection, 'mazopartida'), {
-      cantidad: 1,
-      cartas: [cartaInicial]
-    })
-
-    for (const jugador of jugadores) {
-      await setDoc(doc(mazosCollection, `mazojugador_${jugador.id_jugador}`), {
-        id_jugador: jugador.id_jugador,
-        cantidad: 7,
-        cartas: cartasPorJugador[jugador.id_jugador] || []
-      })
-    }
-  }
-
-  esCartaValida(cartaActual, cartaNueva) {
-    if (!cartaActual || !cartaNueva) return false
-    return (
-      cartaNueva.color === cartaActual.color ||
-      cartaNueva.valor === cartaActual.valor ||
-      cartaNueva.color === 'negro'
-    )
-  }
-
-  async actualizarMazoRobarYJugador(roomCode, idJugador) {
-    const mazorobarRef = doc(db, `salas/${roomCode}/mazos/mazorobar`)
-    const mazojugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${idJugador}`)
-
-    const mazorobarDoc = await getDoc(mazorobarRef)
-    const mazojugadorDoc = await getDoc(mazojugadorRef)
-
-    if (mazorobarDoc.exists() && mazojugadorDoc.exists()) {
-      const datosMazorobar = mazorobarDoc.data()
-      const datosMazoJugador = mazojugadorDoc.data()
-
-      if (datosMazorobar.cantidad > 0 && datosMazorobar.cartas.length > 0) {
-        const cartaRobada = datosMazorobar.cartas.pop()
-
-        await updateDoc(mazorobarRef, {
-          cantidad: datosMazorobar.cantidad - 1,
-          cartas: datosMazorobar.cartas
-        })
-        await updateDoc(mazojugadorRef, {
-          cantidad: datosMazoJugador.cantidad + 1,
-          cartas: arrayUnion(cartaRobada)
-        })
-      } else {
-        throw new Error('No hay más cartas para robar.')
-      }
-    }
-  }
-
-  async actualizarMazoJugadorYPartida(roomCode, idJugador, cartaJugado) {
-    const mazopartidaRef = doc(db, `salas/${roomCode}/mazos/mazopartida`)
-    const mazojugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${idJugador}`)
-
-    const mazopartidaDoc = await getDoc(mazopartidaRef)
-    const mazojugadorDoc = await getDoc(mazojugadorRef)
-
-    if (mazopartidaDoc.exists() && mazojugadorDoc.exists()) {
-      const datosMazopartida = mazopartidaDoc.data()
-      const datosMazoJugador = mazojugadorDoc.data()
-
-      await updateDoc(mazopartidaRef, {
-        cantidad: datosMazopartida.cantidad + 1,
-        cartas: arrayUnion(cartaJugado)
-      })
-
-      await updateDoc(mazojugadorRef, {
-        cantidad: datosMazoJugador.cantidad - 1,
-        cartas: arrayRemove(cartaJugado)
-      })
-    }
-  }
-
-  async loadCartasJugador(roomCode, idJugador) {
-    const mazojugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${idJugador}`)
-    const mazojugadorSnap = await getDoc(mazojugadorRef)
-
-    if (mazojugadorSnap.exists()) {
-      const data = mazojugadorSnap.data()
-      return data.cartas || []
-    }
-    return []
-  }
-
-  async loadCartasMesa(roomCode) {
-    const mazopartidaRef = doc(db, `salas/${roomCode}/mazos/mazopartida`)
-    const mazopartidaSnap = await getDoc(mazopartidaRef)
-
-    if (mazopartidaSnap.exists()) {
-      const data = mazopartidaSnap.data()
-      return data.cartas || []
-    }
-    return []
-  }
-
-  async pasarTurno(jugadores, userIdActual, roomCode) {
-    const jugadoresOrdenados = jugadores.map(j => j.id_jugador)
-    const indiceActual = jugadoresOrdenados.indexOf(userIdActual)
-    const siguienteIndice = (indiceActual + 1) % jugadoresOrdenados.length
-    const siguienteJugador = jugadoresOrdenados[siguienteIndice]
-
-    const salaRef = doc(this.salasCollection, roomCode)
-    await updateDoc(salaRef, {
-      turnoActual: siguienteJugador
-    })
-
-    return siguienteJugador
-  }
-
-  // ========================
-  // 🎯 Funciones de ayuda
-  // ========================
-
-  clonarCartaConColor(carta, color) {
-    const copia = { ...carta }
-    copia.color = color
-    return copia
-  }
-
-  async jugarCarta(roomCode, userId, cartaParaMostrar, cartaParaEliminar) {
-    const cartaFinal = cartaParaEliminar || cartaParaMostrar
-    await this.actualizarMazoJugadorYPartida(roomCode, userId, cartaFinal)
-  }
-
-  async jugarComodinConColor(roomCode, userId, cartaOriginal, color, jugadores) {
-    const cartaConColor = this.clonarCartaConColor(cartaOriginal, color)
-    await this.jugarCarta(roomCode, userId, cartaConColor, cartaOriginal)
-    await this.actualizarColorUltimaCartaMazopartida(roomCode, color) // 🔥 Aquí nuevo
-    await this.pasarTurno(jugadores, userId, roomCode)
-  }
-
-  async actualizarColorUltimaCartaMazopartida(roomCode, nuevoColor) {
-    const mazopartidaRef = doc(db, `salas/${roomCode}/mazos/mazopartida`)
-    const mazopartidaDoc = await getDoc(mazopartidaRef)
-
-    if (mazopartidaDoc.exists()) {
-      const data = mazopartidaDoc.data()
-      const cartas = data.cartas || []
-
-      if (cartas.length > 0) {
-        const ultimaCarta = { ...cartas[cartas.length - 1] }
-        ultimaCarta.color = nuevoColor
-
-        cartas[cartas.length - 1] = ultimaCarta
-
-        await updateDoc(mazopartidaRef, {
-          cartas: cartas
-        })
-      }
-    }
-  }
-
-  // ========================
-  // 🔥 Listeners en tiempo real
-  // ========================
-
-  escucharMazoJugador(roomCode, userId, callback) {
-    const mazojugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${userId}`)
-    return onSnapshot(mazojugadorRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data()
-        callback(data.cartas || [])
-      }
+    await updateDoc(mazoPartidaRef, {
+      cartas: arrayUnion(carta)
     })
   }
 
-  escucharMazoPartida(roomCode, callback) {
-    const mazopartidaRef = doc(db, `salas/${roomCode}/mazos/mazopartida`)
-    return onSnapshot(mazopartidaRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data()
-        callback(data.cartas || [])
-      }
+  // 🔥 Jugar un comodín y elegir color
+  async jugarComodinConColor(roomCode, userId, cartaOriginal, colorNuevo) {
+    const cartaConColor = { ...cartaOriginal, color: colorNuevo }
+    await this.jugarCarta(roomCode, userId, cartaOriginal)
+    await this.actualizarUltimaCartaMazopartida(roomCode, cartaConColor)
+  }
+
+  // 🔥 Actualizar el color de la última carta de mazo partida (comodín)
+  async actualizarUltimaCartaMazopartida(roomCode, nuevaCarta) {
+    const mazoPartidaRef = doc(db, `salas/${roomCode}/mazos/mazopartida`)
+    const mazoPartidaSnap = await getDoc(mazoPartidaRef)
+    if (mazoPartidaSnap.exists()) {
+      const datos = mazoPartidaSnap.data()
+      const cartas = datos.cartas || []
+      cartas[cartas.length - 1] = nuevaCarta
+      await updateDoc(mazoPartidaRef, { cartas })
+    }
+  }
+
+  // 🔥 Pasar turno
+  async pasarTurno(jugadores, userId, roomCode) {
+    const orden = jugadores.map(j => j.id_jugador)
+    const actualIndex = orden.indexOf(userId)
+    const siguienteIndex = (actualIndex + 1) % orden.length
+    const siguienteJugador = orden[siguienteIndex]
+
+    const salaRef = doc(db, 'salas', roomCode)
+    await updateDoc(salaRef, { turnoActual: siguienteJugador })
+  }
+
+  // 🔥 Robar una carta
+  async robarCarta(roomCode, userId) {
+    const mazoRobarRef = doc(db, `salas/${roomCode}/mazos/mazorobar`)
+    const mazoJugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${userId}`)
+
+    const mazoRobarSnap = await getDoc(mazoRobarRef)
+    const mazoJugadorSnap = await getDoc(mazoJugadorRef)
+
+    const mazoRobarData = mazoRobarSnap.data()
+    const mazoJugadorData = mazoJugadorSnap.data()
+
+    if (!mazoRobarData || !mazoRobarData.cartas.length) {
+      throw new Error('No hay cartas para robar.')
+    }
+
+    const cartaRobada = mazoRobarData.cartas.pop()
+
+    await updateDoc(mazoRobarRef, {
+      cartas: mazoRobarData.cartas,
+      cantidad: mazoRobarData.cartas.length
     })
+
+    await updateDoc(mazoJugadorRef, {
+      cartas: arrayUnion(cartaRobada),
+      cantidad: mazoJugadorData.cartas.length + 1
+    })
+
+    return cartaRobada
+  }
+
+  // 🔥 Robar varias cartas (cuando hay acumulado +2 o +4)
+  async comerAcumulado(roomCode, userId, acumulado) {
+    const mazoRobarRef = doc(db, `salas/${roomCode}/mazos/mazorobar`)
+    const mazoJugadorRef = doc(db, `salas/${roomCode}/mazos/mazojugador_${userId}`)
+
+    const mazoRobarSnap = await getDoc(mazoRobarRef)
+    const mazoJugadorSnap = await getDoc(mazoJugadorRef)
+
+    const mazoRobarData = mazoRobarSnap.data()
+    const mazoJugadorData = mazoJugadorSnap.data()
+
+    const cartasRobadas = []
+    for (let i = 0; i < acumulado; i++) {
+      if (mazoRobarData.cartas.length === 0) break
+      cartasRobadas.push(mazoRobarData.cartas.pop())
+    }
+
+    await updateDoc(mazoRobarRef, {
+      cartas: mazoRobarData.cartas,
+      cantidad: mazoRobarData.cartas.length
+    })
+
+    await updateDoc(mazoJugadorRef, {
+      cartas: arrayUnion(...cartasRobadas),
+      cantidad: mazoJugadorData.cartas.length + cartasRobadas.length
+    })
+  }
+
+  // 🔥 Actualizar contador de acumulado
+  async actualizarContador(roomCode, nuevoContador) {
+    const salaRef = doc(db, 'salas', roomCode)
+    await updateDoc(salaRef, { contador: nuevoContador })
   }
 }
 
