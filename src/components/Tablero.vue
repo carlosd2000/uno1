@@ -67,6 +67,7 @@
               v-for="(carta, index) in cartasPorJugador[userId] || []"
               :key="index"
               :card-data="carta"
+              @click="manejarClickCarta(carta, index)"
             />
           </div>
         </div>
@@ -84,8 +85,8 @@
     </div>
   </template>
   
-  <script>
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore'
+<script>
+import { collection, getDoc, getDocs, setDoc, doc, onSnapshot, deleteDoc } from 'firebase/firestore'
 
   import { db } from '../firebase/config'
   import { gameService } from '../script/GameService'
@@ -138,20 +139,28 @@ juegoComenzado: false
     },
     methods: {
       async asignarCartasSiNoExisten(jugadorId) {
-  const cartasRef = collection(db, `salas/${this.roomCode}/jugadores/${jugadorId}/cartas`);
-  const snapshot = await getDocs(cartasRef);
+        
+        const jugadorRef = doc(db, `salas/${this.roomCode}/jugadores/${jugadorId}`);
+        const jugadorDoc = await getDoc(jugadorRef);
 
-  if (snapshot.empty) {
-    const cartas = this.obtenerCartasAleatorias(7);
-    for (let carta of cartas) {
-      const cartaId = crypto.randomUUID(); // Genera un ID único
-      await setDoc(doc(cartasRef, cartaId), carta); // Guardar en Firestore
-    }
-    return cartas;
-  } else {
-    return snapshot.docs.map(doc => doc.data());
-  }
-},
+        if (jugadorDoc.exists() && jugadorDoc.data().terminado) {
+          return []; // No asignar cartas si ya terminó
+        }
+
+        const cartasRef = collection(db, `salas/${this.roomCode}/jugadores/${jugadorId}/cartas`);
+        const snapshot = await getDocs(cartasRef);
+
+        if (snapshot.empty) {
+          const cartas = this.obtenerCartasAleatorias(7);
+          for (let carta of cartas) {
+            const cartaId = crypto.randomUUID(); // Genera un ID único
+            await setDoc(doc(cartasRef, cartaId), carta); // Guardar en Firestore
+          }
+          return cartas;
+        } else {
+          return snapshot.docs.map(doc => doc.data());
+        }
+      },
 
       async fetchCartas() {
         const cartasSnapshot = await getDocs(collection(db, 'cartasUNO'))
@@ -168,6 +177,67 @@ juegoComenzado: false
   }, { merge: true }); // Merge para no sobrescribir otros datos
 },
 
+async tirarCarta(carta, index) {
+  if (!this.juegoComenzado) return;
+
+  const mismaColor = carta.color === this.cartaActual.color;
+  const mismoValor = carta.valor === this.cartaActual.valor;
+  const esComodin = carta.color === "negro";
+
+  if (mismaColor || mismoValor || esComodin) {
+    await setDoc(doc(db, 'salas', this.roomCode), {
+      cartaActual: carta
+    },{merge: true});
+    
+    this.cartasPorJugador[this.userId].splice(index, 1);
+    
+    const jugadorCartasRef = collection(db, `salas/${this.roomCode}/jugadores/${this.userId}/cartas`);
+  
+    const docs = await getDocs(jugadorCartasRef);
+    for (let docu of docs.docs) {
+      deleteDoc(docu.ref)
+    }
+  
+    for (let carta of this.cartasPorJugador[this.userId]) {
+      const cartaId = crypto.randomUUID();
+      await setDoc(doc(jugadorCartasRef, cartaId), carta);
+    }
+  }
+
+
+  if (this.cartasPorJugador[this.userId].length === 0) {
+    await setDoc(doc(db, `salas/${this.roomCode}/jugadores/${this.userId}`), {
+      terminado: true
+    }, { merge: true });
+  }
+},
+
+manejarClickCarta(carta, index) {
+  if (this.esCartaValida(carta)) {
+    this.tirarCarta(carta, index);
+  } else {
+    return;
+  }
+},
+
+esCartaValida(carta){
+  if (!this.cartaActual) return false;
+
+  if (carta.tipo === 'comodin' || carta.tipo === '+4') {
+    return true;
+  }
+
+  if (carta.color === this.cartaActual.color || carta.numero === this.cartaActual.numero){
+    return true
+  }
+
+  if (carta.tipo && this.cartaActual.tipo && carta.tipo === this.cartaActual.tipo) {
+    return true
+  }
+
+  return false;
+},
+
 listenToSala() {
   gameService.subscribeToSala(this.roomCode, async (salaData) => {
     if (salaData) {
@@ -178,12 +248,12 @@ listenToSala() {
 
       if (this.todasLasCartas.length === 0) {
         await this.fetchCartas();
-      }
+      }  
 
       for (const jugador of salaData.jugadores) {
-        const yaTieneCartas = this.cartasPorJugador[jugador.id_jugador]?.length > 0;
+        const cartasJugador = this.cartasPorJugador[jugador.id_jugador];
 
-        if (!yaTieneCartas) {
+        if (!cartasJugador) {
           const cartas = await this.asignarCartasSiNoExisten(jugador.id_jugador);
 
           if (this.$set) {
@@ -217,9 +287,9 @@ listenToSala() {
       gameService.cancelSubscription()
     }
   }
-  </script>
+</script>
   
-  <style scoped>
+<style scoped>
   /* 🔥 ESTILOS 🔥 */
   .tablero {
     display: flex;
@@ -445,5 +515,5 @@ listenToSala() {
     from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
-  </style>
+</style>
     
