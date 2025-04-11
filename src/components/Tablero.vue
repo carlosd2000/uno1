@@ -45,6 +45,9 @@
         <button v-if="!juegoComenzado" class="btn-comenzar pulse" @click="comenzarJuego">
           COMENZAR
         </button>
+        <h2 v-if="jugadorDelTurnoActual" class="text-xl font-bold text-center">
+  Turno de: <span class="text-purple-500">{{ jugadorDelTurnoActual.apodo }}</span>
+</h2>
       </div>
 
       <!-- Jugador derecho -->
@@ -63,11 +66,12 @@
       <div class="contenedor-jugador">
         <div class="cartas-jugador fade-in-bottom">
           <Card
-            v-for="(carta, index) in cartasJugadorActual"
-            :key="index"
-            :card-data="carta"
-            @click="manejarClickCarta(carta, index)"
-          />
+  v-for="(carta, index) in cartasJugadorActual"
+  :key="index"
+  :card-data="carta"
+  @click="manejarClickCarta(carta, index)"
+  :class="{ 'opacity-50 pointer-events-none': !esMiTurno }"
+/>
         </div>
       </div>
     </div>
@@ -159,7 +163,11 @@ export default {
     },
     esMiTurno() {
       return this.turnoActual === this.userId
-    }
+    },
+    jugadorDelTurnoActual() {
+    return this.jugadores.find(j => j.id_jugador === this.turnoActual) || null;
+  }
+
   },
   methods: {
     listenToSala() {
