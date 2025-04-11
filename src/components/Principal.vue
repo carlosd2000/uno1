@@ -36,31 +36,87 @@
 
 <script>
 import { getAuth } from 'firebase/auth'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { db } from '../firebase/config'
 
 export default {
   name: 'Principal',
   data() {
     return {
-      nombreJugador: ''
+      nombreJugador: '',
+      originalNombre: '',
+      showSaveButton: false,
+      userId: null
+    }
+  },
+  async created() {
+    const auth = getAuth()
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        this.userId = user.uid
+        await this.cargarApodoUsuario()
+      }
+    })
+  },
+  watch: {
+    nombreJugador(newVal) {
+      this.showSaveButton = newVal !== this.originalNombre && newVal.trim() !== ''
     }
   },
   methods: {
+    async cargarApodoUsuario() {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', this.userId))
+        if (userDoc.exists()) {
+          this.nombreJugador = userDoc.data().nombre || ''
+          this.originalNombre = this.nombreJugador
+        }
+      } catch (error) {
+        console.error('Error cargando apodo:', error)
+      }
+    },
+    
+    async guardarApodo() {
+      if (!this.nombreJugador.trim()) {
+        alert('El apodo no puede estar vacío')
+        return
+      }
+      
+      try {
+        await updateDoc(doc(db, 'users', this.userId), {
+          apodo: this.nombreJugador.trim()
+        })
+        this.originalNombre = this.nombreJugador
+        this.showSaveButton = false
+        alert('Apodo actualizado correctamente')
+      } catch (error) {
+        console.error('Error actualizando apodo:', error)
+        alert('Error al guardar el apodo')
+      }
+    },
+
     crearPartida() {
       if (!this.nombreJugador.trim()) {
         alert('Por favor ingresa tu apodo')
         return
       }
-      // Redirige pasando el apodo como query
-      this.$router.push({ path: '/crearsala', query: { apodo: this.nombreJugador } })
+      this.$router.push({ 
+        path: '/crearsala', 
+        query: { apodo: this.nombreJugador.trim() } 
+      })
     },
+
     unirsePartida() {
       if (!this.nombreJugador.trim()) {
         alert('Por favor ingresa tu apodo')
         return
       }
-      // Redirige pasando el apodo como query
-      this.$router.push({ path: '/unirseSala', query: { apodo: this.nombreJugador } })
+      this.$router.push({ 
+        path: '/unirseSala', 
+        query: { apodo: this.nombreJugador.trim() } 
+      })
     },
+
     logout() {
       const auth = getAuth()
       auth.signOut().then(() => {

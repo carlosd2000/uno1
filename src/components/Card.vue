@@ -60,15 +60,7 @@
   .negro { background-color: #2C3E50; }
   
   /* Indicador de color para cartas normales */
-  .card-color-indicator {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid white;
-  }
+
   
   .rojo .card-color-indicator { background-color: #E74C3C; }
   .amarillo .card-color-indicator { background-color: #F1C40F; border-color: #333; }
