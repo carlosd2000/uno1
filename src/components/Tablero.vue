@@ -2,15 +2,15 @@
   <div class="tablero">
     <!-- Fila superior -->
     <div class="fila-superior">
-    <router-link 
-      to="/historial" 
-      class="historial-link"
-      title="Ver historial de partidas"
-    >
-      Historial de partidas
-    </router-link>
-    <div class="contador">Contador +0</div>
-  </div>
+      <router-link 
+        to="/historial" 
+        class="historial-link"
+        title="Ver historial de partidas"
+      >
+        Historial de partidas
+      </router-link>
+      <div class="contador">Contador +0</div>
+    </div>
 
     <!-- Jugador superior -->
     <div v-if="jugadoresOponentes[0]" class="jugador-superior">
@@ -35,24 +35,21 @@
       <!-- Zona central -->
       <div class="zona-central fade-in">
         <div class="mazo-cartas">
-<img src="/img/carta-reverso.png" alt="Mazo" class="mazo-imagen" @click="robarCarta" />
-
-<div v-if="!juegoComenzado">
-  <img src="/img/carta_+4.png" alt="Carta actual" />
-</div>
-
-<div v-else-if="juegoComenzado && cartaActual">
-<Card :card-data="cartaActual" class="carta-central" />
-</div>
-</div>
-<button
-v-if="!juegoComenzado"
-class="btn-comenzar pulse"
-@click="comenzarJuego"
-
->
-COMENZAR
-</button>
+          <img src="/img/carta-reverso.png" alt="Mazo" class="mazo-imagen" @click="robarCarta" />
+          <div v-if="!juegoComenzado">
+            <img src="/img/carta_+4.png" alt="Carta actual" />
+          </div>
+          <div v-else-if="juegoComenzado && cartaActual">
+            <Card :card-data="cartaActual" class="carta-central" />
+          </div>
+        </div>
+        <button
+          v-if="!juegoComenzado"
+          class="btn-comenzar pulse"
+          @click="comenzarJuego"
+        >
+          COMENZAR
+        </button>
       </div>
 
       <!-- Jugador derecho -->
@@ -71,7 +68,7 @@ COMENZAR
       <div class="contenedor-jugador">
         <div class="cartas-jugador fade-in-bottom">
           <Card
-            v-for="(carta, index) in mazosPorJugador[userId] || []"
+            v-for="(carta, index) in cartasJugadorActual"
             :key="index"
             :card-data="carta"
             @click="manejarClickCarta(carta, index)"
@@ -89,220 +86,140 @@ COMENZAR
     <div class="salir-btn">
       <button @click="salirPartida">🚪 Salir</button>
     </div>
-  </div>
 
-  <!-- Modal para elegir color -->
-<div v-if="mostrarModalColor" class="modal-color">
-  <div class="modal-contenido">
-    <h3 class="titulo-modal">Selecciona un color</h3>
-    <div class="colores">
-      <div class="color-item">
-        <button class="color-btn rojo" @click="elegirColor('rojo')"></button>
-      </div>
-      <div class="color-item">
-        <button class="color-btn verde" @click="elegirColor('verde')"></button>
-      </div>
-      <div class="color-item">
-        <button class="color-btn amarillo" @click="elegirColor('amarillo')"></button>
-      </div>
-      <div class="color-item">
-        <button class="color-btn azul" @click="elegirColor('azul')"></button>
+    <!-- Modal para elegir color -->
+    <div v-if="mostrarModalColor" class="modal-color">
+      <div class="modal-contenido">
+        <h3 class="titulo-modal">Selecciona un color</h3>
+        <div class="colores">
+          <div class="color-item"><button class="color-btn rojo" @click="elegirColor('rojo')"></button></div>
+          <div class="color-item"><button class="color-btn verde" @click="elegirColor('verde')"></button></div>
+          <div class="color-item"><button class="color-btn amarillo" @click="elegirColor('amarillo')"></button></div>
+          <div class="color-item"><button class="color-btn azul" @click="elegirColor('azul')"></button></div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <script>
-import { collection, getDoc, getDocs, setDoc, doc, onSnapshot, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { getAuth } from 'firebase/auth';
-import Card from '../components/Card.vue';
+import { getAuth } from 'firebase/auth'
+import { collection, doc, onSnapshot } from 'firebase/firestore'
+import { db } from '../firebase/config'
+import { tableroService } from '../script/TableroService'
+import Card from '../components/Card.vue'
 
 export default {
-name: "Tablero",
-components: { Card },
-data() {
-  return {
-    jugadores: [],
-    roomCode: '',
-    todasLasCartas: [],
-    cartasJugadorActual: [],
-    userId: '',
-    cartaActual: null,
-    juegoComenzado: false,
-    mostrarModalColor: false,
-    cartaPendiente: null,
-    turnoActual: null,
-    mazoRobar: [],
-    mazosPorJugador: {}, // <- Aquí se guardan las cartas por jugador
-  };
-},
-created() {
-  const auth = getAuth();
-  const unsubscribe = auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      this.userId = user.uid;
-      this.roomCode = this.$route.query.roomCode;
-
-      if (this.roomCode) {
-        await this.fetchCartas();
-        this.listenToSala();
+  name: "Tablero",
+  components: { Card },
+  data() {
+    return {
+      jugadores: [],
+      roomCode: '',
+      todasLasCartas: [],
+      cartasJugadorActual: [],
+      userId: '',
+      cartaActual: null,
+      juegoComenzado: false,
+      mostrarModalColor: false,
+      cartaPendiente: null,
+      turnoActual: null,
+      mazoRobar: [],
+      mazosPorJugador: {}
+    }
+  },
+  created() {
+    const auth = getAuth()
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        this.userId = user.uid
+        this.roomCode = this.$route.query.roomCode
+        if (this.roomCode) {
+          this.todasLasCartas = await tableroService.fetchCartas()
+          this.listenToSala()
+        } else {
+          this.$router.push('/principal')
+        }
+        unsubscribe()
       } else {
-        this.$router.push('/principal');
+        this.$router.push('/login')
       }
-      unsubscribe();
-    } else {
-      this.$router.push('/login');
+    })
+  },
+  computed: {
+    jugadorActual() {
+      return this.jugadores.find(j => j.id_jugador === this.userId) || null
+    },
+    jugadoresOponentes() {
+      return this.jugadores.filter(j => j.id_jugador !== this.userId)
+    },
+    esMiTurno() {
+      return this.turnoActual === this.userId
     }
-  });
-},
-computed: {
-  jugadorActual() {
-    return this.jugadores.find(j => j.id_jugador === this.userId) || null;
   },
-  jugadoresOponentes() {
-    return this.jugadores.filter(j => j.id_jugador !== this.userId);
-  },
-  esMiTurno() {
-    return this.turnoActual === this.userId;
-  }
-},
-methods: {
-  async fetchCartas() {
-    const cartasSnapshot = await getDocs(collection(db, 'cartasUNO'));
-    this.todasLasCartas = cartasSnapshot.docs.map(doc => doc.data());
-  },
-  listenToSala() {
-    const salaRef = doc(db, 'salas', this.roomCode);
-    onSnapshot(salaRef, (docSnap) => {
-      const data = docSnap.data();
-      if (data) {
-        this.cartaActual = data.cartaActual;
-        this.juegoComenzado = data.juegoComenzado;
-        this.turnoActual = data.turnoActual;
-        this.mazoRobar = data.mazoRobar || [];
-        this.mazosPorJugador = data.mazosPorJugador || {};
-        this.cartasJugadorActual = this.mazosPorJugador[this.userId] || [];
+  methods: {
+    listenToSala() {
+      const salaRef = doc(db, 'salas', this.roomCode)
+      onSnapshot(salaRef, (docSnap) => {
+        const data = docSnap.data()
+        if (data) {
+          this.cartaActual = data.cartaActual
+          this.juegoComenzado = data.juegoComenzado
+          this.turnoActual = data.turnoActual
+          this.mazoRobar = data.mazoRobar || []
+          this.mazosPorJugador = data.mazosPorJugador || {}
+          this.cartasJugadorActual = this.mazosPorJugador[this.userId] || []
+        }
+      })
+
+      const jugadoresRef = collection(db, `salas/${this.roomCode}/jugadores`)
+      onSnapshot(jugadoresRef, (snapshot) => {
+        this.jugadores = snapshot.docs.map(doc => ({ id_jugador: doc.id, ...doc.data() }))
+      })
+    },
+    async comenzarJuego() {
+      await tableroService.comenzarJuego(this.jugadores, this.todasLasCartas, this.roomCode)
+    },
+    esCartaValida(carta) {
+      return tableroService.esCartaValida(this.cartaActual, carta)
+    },
+    async manejarClickCarta(carta, index) {
+      if (!this.esMiTurno || !this.juegoComenzado) return
+
+      if (this.esCartaValida(carta)) {
+        if (carta.tipo === "comodín" || carta.valor === "comodín +4") {
+          this.cartaPendiente = { carta, index }
+          this.mostrarModalColor = true
+        } else {
+          this.cartasJugadorActual = await tableroService.procesarCarta(this.roomCode, this.userId, carta, index, this.cartasJugadorActual)
+          await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
+        }
       }
-    });
+    },
+    async elegirColor(color) {
+      if (!this.cartaPendiente) return
 
-    const jugadoresRef = collection(db, `salas/${this.roomCode}/jugadores`);
-    onSnapshot(jugadoresRef, (snapshot) => {
-      this.jugadores = snapshot.docs.map(doc => ({ id_jugador: doc.id, ...doc.data() }));
-    });
-  },
-  async comenzarJuego() {
-    if (this.todasLasCartas.length === 0) {
-      console.error("No hay cartas cargadas todavía");
-      return;
+      const { carta, index } = this.cartaPendiente
+      this.mostrarModalColor = false
+      this.cartaPendiente = null
+
+      this.cartasJugadorActual = await tableroService.procesarCarta(this.roomCode, this.userId, carta, index, this.cartasJugadorActual, color)
+      await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
+    },
+    async robarCarta() {
+      if (!this.esMiTurno || !this.juegoComenzado) return
+      const result = await tableroService.robarCarta(this.roomCode, this.userId, this.mazoRobar, this.cartasJugadorActual)
+      this.mazoRobar = result.mazoRobar
+      this.cartasJugadorActual = result.cartasJugadorActual
+
+      await tableroService.pasarTurno(this.jugadores, this.userId, this.roomCode)
+    },
+    salirPartida() {
+      this.$router.push('/principal')
     }
-    
-    const mazoMezclado = [...this.todasLasCartas].sort(() => Math.random() - 0.5);
-    const cartasPorJugador = {};
-    const cartasParaRobar = [];
-
-    this.jugadores.forEach(jugador => {
-      cartasPorJugador[jugador.id_jugador] = mazoMezclado.splice(0, 7);
-    });
-
-    cartasParaRobar.push(...mazoMezclado);
-
-    const cartaInicial = cartasParaRobar.pop(); // La carta en el centro
-
-    if (!cartaInicial) {
-      console.error("No se pudo obtener carta inicial");
-      return;
-    }
-
-    await updateDoc(doc(db, 'salas', this.roomCode), {
-      mazoRobar: cartasParaRobar,
-      mazosPorJugador: cartasPorJugador,
-      cartaActual: cartaInicial,
-      juegoComenzado: true,
-      turnoActual: this.jugadores[0]?.id_jugador || null,
-    });
-  },
-  async manejarClickCarta(carta, index) {
-    if (!this.esMiTurno || !this.juegoComenzado) return;
-    
-    if (this.esCartaValida(carta)) {
-      if (carta.tipo === "comodín" || carta.valor === "comodín +4") {
-        this.cartaPendiente = { carta, index };
-        this.mostrarModalColor = true;
-      } else {
-        await this.procesarCarta(carta, index);
-      }
-    }
-  },
-  async procesarCarta(carta, index, colorElegido = null) {
-    if (colorElegido) carta.color = colorElegido;
-
-    // Eliminar carta de mi mano localmente
-    this.cartasJugadorActual.splice(index, 1);
-
-    // Actualizar en Firestore
-    await updateDoc(doc(db, 'salas', this.roomCode), {
-      [`mazosPorJugador.${this.userId}`]: this.cartasJugadorActual,
-      cartaActual: carta,
-    });
-
-    if (this.cartasJugadorActual.length === 0) {
-      await updateDoc(doc(db, `salas/${this.roomCode}/jugadores/${this.userId}`), {
-        terminado: true,
-      });
-    }
-
-    this.pasarTurno();
-  },
-  async robarCarta() {
-    if (!this.esMiTurno || !this.juegoComenzado) return;
-    if (this.mazoRobar.length === 0) {
-      alert('No hay más cartas en el mazo.');
-      return;
-    }
-
-    const cartaRobada = this.mazoRobar.pop();
-    this.cartasJugadorActual.push(cartaRobada);
-
-    await updateDoc(doc(db, 'salas', this.roomCode), {
-      mazoRobar: this.mazoRobar,
-      [`mazosPorJugador.${this.userId}`]: this.cartasJugadorActual,
-    });
-
-    this.pasarTurno();
-  },
-  async pasarTurno() {
-    const jugadoresOrdenados = this.jugadores.map(j => j.id_jugador);
-    const indiceActual = jugadoresOrdenados.indexOf(this.userId);
-    const siguienteIndice = (indiceActual + 1) % jugadoresOrdenados.length;
-    const siguienteJugador = jugadoresOrdenados[siguienteIndice];
-
-    await updateDoc(doc(db, 'salas', this.roomCode), {
-      turnoActual: siguienteJugador,
-    });
-  },
-  esCartaValida(carta) {
-    if (!this.cartaActual) return false;
-    return carta.color === this.cartaActual.color || carta.valor === this.cartaActual.valor || carta.color === 'negro';
-  },
-  async elegirColor(color) {
-    if (!this.cartaPendiente) return;
-
-    const { carta, index } = this.cartaPendiente;
-
-    this.mostrarModalColor = false;
-    this.cartaPendiente = null;
-
-    await this.procesarCarta(carta, index, color);
-  },
-  salirPartida() {
-    this.$router.push('/principal');
   }
 }
-};
 </script>
-
 
 <style scoped>
 /* 🔥 ESTILOS 🔥 */
