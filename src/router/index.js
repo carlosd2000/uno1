@@ -8,7 +8,7 @@ import UnirseSala from '../components/UnirseSala.vue'
 import SalaEspera from '../components/SalaEspera.vue'
 import Tablero from '../components/Tablero.vue'
 import cardList from '../components/CardList.vue'
-
+import Historial from '../components/Historial.vue'
 const routes = [
   {
     path: '/',
@@ -54,7 +54,14 @@ const routes = [
     path: '/cardList',
     name: 'Cardlist',
     component: cardList
-  }
+  },
+  {
+    path: '/historial',
+    name: 'Historial',
+    component: Historial
+
+  },
+  
 
 
 ]

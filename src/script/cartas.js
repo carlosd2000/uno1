@@ -3,12 +3,12 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBXlt5vrE7rtmJkoQGQYIL0SGYyBftg4NI",
-    authDomain: "uno1-25873.firebaseapp.com",
-    projectId: "uno1-25873",
-    storageBucket: "uno1-25873.firebasestorage.app",
-    messagingSenderId: "8506978390",
-    appId: "1:8506978390:web:bbd92cecd066e3ce928bf7"
+  apiKey: "AIzaSyBXlt5vrE7rtmJkoQGQYIL0SGYyBftg4NI",
+  authDomain: "uno1-25873.firebaseapp.com",
+  projectId: "uno1-25873",
+  storageBucket: "uno1-25873.firebasestorage.app",
+  messagingSenderId: "8506978390",
+  appId: "1:8506978390:web:bbd92cecd066e3ce928bf7"
 };
 
 // Inicializar Firebase y Firestore
