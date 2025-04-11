@@ -29,7 +29,7 @@
         <!-- Zona central -->
         <div class="zona-central fade-in">
           <div class="mazo-cartas">
-  <img src="/img/carta-reverso.png" alt="Mazo" />
+  <img src="/img/carta-reverso.png" alt="Mazo" class="mazo-imagen" @click="robarCarta" />
 
   <div v-if="!juegoComenzado">
     <img src="/img/carta_+4.png" alt="Carta actual" />
@@ -43,6 +43,7 @@
   v-if="!juegoComenzado"
   class="btn-comenzar pulse"
   @click="comenzarJuego"
+  
 >
   COMENZAR
 </button>
@@ -64,7 +65,7 @@
         <div class="contenedor-jugador">
           <div class="cartas-jugador fade-in-bottom">
             <Card
-              v-for="(carta, index) in cartasPorJugador[userId] || []"
+              v-for="(carta, index) in mazosPorJugador[userId] || []"
               :key="index"
               :card-data="carta"
               @click="manejarClickCarta(carta, index)"
@@ -83,211 +84,219 @@
         <button @click="salirPartida">🚪 Salir</button>
       </div>
     </div>
-  </template>
+
+    <!-- Modal para elegir color -->
+  <div v-if="mostrarModalColor" class="modal-color">
+    <div class="modal-contenido">
+      <h3 class="titulo-modal">Selecciona un color</h3>
+      <div class="colores">
+        <div class="color-item">
+          <button class="color-btn rojo" @click="elegirColor('rojo')"></button>
+        </div>
+        <div class="color-item">
+          <button class="color-btn verde" @click="elegirColor('verde')"></button>
+        </div>
+        <div class="color-item">
+          <button class="color-btn amarillo" @click="elegirColor('amarillo')"></button>
+        </div>
+        <div class="color-item">
+          <button class="color-btn azul" @click="elegirColor('azul')"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
   
 <script>
-import { collection, getDoc, getDocs, setDoc, doc, onSnapshot, deleteDoc } from 'firebase/firestore'
+import { collection, getDoc, getDocs, setDoc, doc, onSnapshot, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { getAuth } from 'firebase/auth';
+import Card from '../components/Card.vue';
 
-  import { db } from '../firebase/config'
-  import { gameService } from '../script/GameService'
-  import { getAuth } from 'firebase/auth'
-  import Card from '../components/Card.vue'
-  
-  export default {
-    name: "Tablero",
-    components: {
-      Card
-    },
-    data() {
-      return {
-        jugadores: [],
-        roomCode: '',
-        todasLasCartas: [],
-        cartasPorJugador: {},
-        userId: '',
-        cartaActual: null,
-juegoComenzado: false
-      }
-    },
-    created() {
-  const auth = getAuth();
-  const unsubscribe = auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      this.userId = user.uid;
-      this.roomCode = this.$route.query.roomCode;
+export default {
+  name: "Tablero",
+  components: { Card },
+  data() {
+    return {
+      jugadores: [],
+      roomCode: '',
+      todasLasCartas: [],
+      cartasJugadorActual: [],
+      userId: '',
+      cartaActual: null,
+      juegoComenzado: false,
+      mostrarModalColor: false,
+      cartaPendiente: null,
+      turnoActual: null,
+      mazoRobar: [],
+      mazosPorJugador: {}, // <- Aquí se guardan las cartas por jugador
+    };
+  },
+  created() {
+    const auth = getAuth();
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        this.userId = user.uid;
+        this.roomCode = this.$route.query.roomCode;
 
-      if (this.roomCode) {
-        await this.fetchCartas();
-        this.listenToSala();
-      } else {
-        this.$router.push('/principal');
-      }
-
-      unsubscribe(); // Nos desuscribimos para que no quede escuchando
-    } else {
-      this.$router.push('/login'); // O lo que quieras hacer si no hay usuario
-    }
-  });
-},
-    computed: {
-      jugadorActual() {
-        return this.jugadores.find(j => j.id_jugador === this.userId) || null
-      },
-      jugadoresOponentes() {
-        return this.jugadores.filter(j => j.id_jugador !== this.userId)
-      }
-    },
-    methods: {
-      async asignarCartasSiNoExisten(jugadorId) {
-        
-        const jugadorRef = doc(db, `salas/${this.roomCode}/jugadores/${jugadorId}`);
-        const jugadorDoc = await getDoc(jugadorRef);
-
-        if (jugadorDoc.exists() && jugadorDoc.data().terminado) {
-          return []; // No asignar cartas si ya terminó
-        }
-
-        const cartasRef = collection(db, `salas/${this.roomCode}/jugadores/${jugadorId}/cartas`);
-        const snapshot = await getDocs(cartasRef);
-
-        if (snapshot.empty) {
-          const cartas = this.obtenerCartasAleatorias(7);
-          for (let carta of cartas) {
-            const cartaId = crypto.randomUUID(); // Genera un ID único
-            await setDoc(doc(cartasRef, cartaId), carta); // Guardar en Firestore
-          }
-          return cartas;
+        if (this.roomCode) {
+          await this.fetchCartas();
+          this.listenToSala();
         } else {
-          return snapshot.docs.map(doc => doc.data());
+          this.$router.push('/principal');
         }
-      },
-
-      async fetchCartas() {
-        const cartasSnapshot = await getDocs(collection(db, 'cartasUNO'))
-        this.todasLasCartas = cartasSnapshot.docs.map(doc => doc.data())
-      },
-
-      async comenzarJuego() {
-  const cartaAleatoria = this.obtenerCartasAleatorias(1)[0];
-
-  // Guarda la carta actual y el estado del juego en Firestore
-  await setDoc(doc(db, 'salas', this.roomCode), {
-    cartaActual: cartaAleatoria,
-    juegoComenzado: true
-  }, { merge: true }); // Merge para no sobrescribir otros datos
-},
-
-async tirarCarta(carta, index) {
-  if (!this.juegoComenzado) return;
-
-  const mismaColor = carta.color === this.cartaActual.color;
-  const mismoValor = carta.valor === this.cartaActual.valor;
-  const esComodin = carta.color === "negro";
-
-  if (mismaColor || mismoValor || esComodin) {
-    await setDoc(doc(db, 'salas', this.roomCode), {
-      cartaActual: carta
-    },{merge: true});
-    
-    this.cartasPorJugador[this.userId].splice(index, 1);
-    
-    const jugadorCartasRef = collection(db, `salas/${this.roomCode}/jugadores/${this.userId}/cartas`);
-  
-    const docs = await getDocs(jugadorCartasRef);
-    for (let docu of docs.docs) {
-      deleteDoc(docu.ref)
+        unsubscribe();
+      } else {
+        this.$router.push('/login');
+      }
+    });
+  },
+  computed: {
+    jugadorActual() {
+      return this.jugadores.find(j => j.id_jugador === this.userId) || null;
+    },
+    jugadoresOponentes() {
+      return this.jugadores.filter(j => j.id_jugador !== this.userId);
+    },
+    esMiTurno() {
+      return this.turnoActual === this.userId;
     }
-  
-    for (let carta of this.cartasPorJugador[this.userId]) {
-      const cartaId = crypto.randomUUID();
-      await setDoc(doc(jugadorCartasRef, cartaId), carta);
-    }
-  }
+  },
+  methods: {
+    async fetchCartas() {
+      const cartasSnapshot = await getDocs(collection(db, 'cartasUNO'));
+      this.todasLasCartas = cartasSnapshot.docs.map(doc => doc.data());
+    },
+    listenToSala() {
+      const salaRef = doc(db, 'salas', this.roomCode);
+      onSnapshot(salaRef, (docSnap) => {
+        const data = docSnap.data();
+        if (data) {
+          this.cartaActual = data.cartaActual;
+          this.juegoComenzado = data.juegoComenzado;
+          this.turnoActual = data.turnoActual;
+          this.mazoRobar = data.mazoRobar || [];
+          this.mazosPorJugador = data.mazosPorJugador || {};
+          this.cartasJugadorActual = this.mazosPorJugador[this.userId] || [];
+        }
+      });
 
-
-  if (this.cartasPorJugador[this.userId].length === 0) {
-    await setDoc(doc(db, `salas/${this.roomCode}/jugadores/${this.userId}`), {
-      terminado: true
-    }, { merge: true });
-  }
-},
-
-manejarClickCarta(carta, index) {
-  if (this.esCartaValida(carta)) {
-    this.tirarCarta(carta, index);
-  } else {
-    return;
-  }
-},
-
-esCartaValida(carta){
-  if (!this.cartaActual) return false;
-
-  if (carta.tipo === 'comodin' || carta.tipo === '+4') {
-    return true;
-  }
-
-  if (carta.color === this.cartaActual.color || carta.numero === this.cartaActual.numero){
-    return true
-  }
-
-  if (carta.tipo && this.cartaActual.tipo && carta.tipo === this.cartaActual.tipo) {
-    return true
-  }
-
-  return false;
-},
-
-listenToSala() {
-  gameService.subscribeToSala(this.roomCode, async (salaData) => {
-    if (salaData) {
-      this.jugadores = salaData.jugadores;
-
-      this.juegoComenzado = !!salaData.juegoComenzado;
-      this.cartaActual = salaData.juegoComenzado ? salaData.cartaActual : null;
-
+      const jugadoresRef = collection(db, `salas/${this.roomCode}/jugadores`);
+      onSnapshot(jugadoresRef, (snapshot) => {
+        this.jugadores = snapshot.docs.map(doc => ({ id_jugador: doc.id, ...doc.data() }));
+      });
+    },
+    async comenzarJuego() {
       if (this.todasLasCartas.length === 0) {
-        await this.fetchCartas();
-      }  
+        console.error("No hay cartas cargadas todavía");
+        return;
+      }
+      
+      const mazoMezclado = [...this.todasLasCartas].sort(() => Math.random() - 0.5);
+      const cartasPorJugador = {};
+      const cartasParaRobar = [];
 
-      for (const jugador of salaData.jugadores) {
-        const cartasJugador = this.cartasPorJugador[jugador.id_jugador];
+      this.jugadores.forEach(jugador => {
+        cartasPorJugador[jugador.id_jugador] = mazoMezclado.splice(0, 7);
+      });
 
-        if (!cartasJugador) {
-          const cartas = await this.asignarCartasSiNoExisten(jugador.id_jugador);
+      cartasParaRobar.push(...mazoMezclado);
 
-          if (this.$set) {
-            this.$set(this.cartasPorJugador, jugador.id_jugador, cartas);
-          } else {
-            this.cartasPorJugador = {
-              ...this.cartasPorJugador,
-              [jugador.id_jugador]: cartas
-            };
-          }
+      const cartaInicial = cartasParaRobar.pop(); // La carta en el centro
+
+      if (!cartaInicial) {
+        console.error("No se pudo obtener carta inicial");
+        return;
+      }
+
+      await updateDoc(doc(db, 'salas', this.roomCode), {
+        mazoRobar: cartasParaRobar,
+        mazosPorJugador: cartasPorJugador,
+        cartaActual: cartaInicial,
+        juegoComenzado: true,
+        turnoActual: this.jugadores[0]?.id_jugador || null,
+      });
+    },
+    async manejarClickCarta(carta, index) {
+      if (!this.esMiTurno || !this.juegoComenzado) return;
+      
+      if (this.esCartaValida(carta)) {
+        if (carta.tipo === "comodín" || carta.valor === "comodín +4") {
+          this.cartaPendiente = { carta, index };
+          this.mostrarModalColor = true;
+        } else {
+          await this.procesarCarta(carta, index);
         }
       }
-    } else {
+    },
+    async procesarCarta(carta, index, colorElegido = null) {
+      if (colorElegido) carta.color = colorElegido;
+
+      // Eliminar carta de mi mano localmente
+      this.cartasJugadorActual.splice(index, 1);
+
+      // Actualizar en Firestore
+      await updateDoc(doc(db, 'salas', this.roomCode), {
+        [`mazosPorJugador.${this.userId}`]: this.cartasJugadorActual,
+        cartaActual: carta,
+      });
+
+      if (this.cartasJugadorActual.length === 0) {
+        await updateDoc(doc(db, `salas/${this.roomCode}/jugadores/${this.userId}`), {
+          terminado: true,
+        });
+      }
+
+      this.pasarTurno();
+    },
+    async robarCarta() {
+      if (!this.esMiTurno || !this.juegoComenzado) return;
+      if (this.mazoRobar.length === 0) {
+        alert('No hay más cartas en el mazo.');
+        return;
+      }
+
+      const cartaRobada = this.mazoRobar.pop();
+      this.cartasJugadorActual.push(cartaRobada);
+
+      await updateDoc(doc(db, 'salas', this.roomCode), {
+        mazoRobar: this.mazoRobar,
+        [`mazosPorJugador.${this.userId}`]: this.cartasJugadorActual,
+      });
+
+      this.pasarTurno();
+    },
+    async pasarTurno() {
+      const jugadoresOrdenados = this.jugadores.map(j => j.id_jugador);
+      const indiceActual = jugadoresOrdenados.indexOf(this.userId);
+      const siguienteIndice = (indiceActual + 1) % jugadoresOrdenados.length;
+      const siguienteJugador = jugadoresOrdenados[siguienteIndice];
+
+      await updateDoc(doc(db, 'salas', this.roomCode), {
+        turnoActual: siguienteJugador,
+      });
+    },
+    esCartaValida(carta) {
+      if (!this.cartaActual) return false;
+      return carta.color === this.cartaActual.color || carta.valor === this.cartaActual.valor || carta.color === 'negro';
+    },
+    async elegirColor(color) {
+      if (!this.cartaPendiente) return;
+
+      const { carta, index } = this.cartaPendiente;
+
+      this.mostrarModalColor = false;
+      this.cartaPendiente = null;
+
+      await this.procesarCarta(carta, index, color);
+    },
+    salirPartida() {
       this.$router.push('/principal');
     }
-  });
-},
-
-      obtenerCartasAleatorias(cantidad) {
-        const cartasMezcladas = [...this.todasLasCartas].sort(() => Math.random() - 0.5)
-        return cartasMezcladas.slice(0, cantidad)
-      },
-      salirPartida() {
-        if (confirm('¿Estás seguro que quieres salir de la partida?')) {
-          gameService.cancelSubscription()
-          this.$router.push('/principal')
-        }
-      }
-    },
-    beforeUnmount() {
-      gameService.cancelSubscription()
-    }
   }
+};
 </script>
+
   
 <style scoped>
   /* 🔥 ESTILOS 🔥 */
@@ -395,6 +404,15 @@ listenToSala() {
     display: flex;
     gap: 0.5rem;
   }
+
+  .mazo-imagen {
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .mazo-imagen:hover {
+    transform: scale(1.1);
+  }
   
   .mazo-cartas img {
     height: 100px;
@@ -489,6 +507,60 @@ listenToSala() {
   .pulse {
     animation: pulseAnim 1.5s infinite;
   }
+
+  .modal-color {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-contenido {
+  background: #a86b41; /* marrón clarito */
+  padding: 30px;
+  border-radius: 20px;
+  text-align: center;
+  width: 300px;
+}
+
+.titulo-modal {
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #3b210d;
+}
+
+.colores {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  justify-items: center;
+  margin: 20px 0;
+}
+
+.color-btn {
+  width: 80px;
+  height: 80px;
+  border: 3px solid #333;
+  border-radius: 20%;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.color-btn:hover {
+  transform: scale(1.2);
+}
+
+.color-btn.rojo { background: #ff4c4c; }
+.color-btn.verde { background: #3adb76; }
+.color-btn.amarillo { background: #ffcc00; }
+.color-btn.azul { background: #3498db; }
   
   @keyframes pulseAnim {
     0% { transform: scale(1); }

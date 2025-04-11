@@ -1,33 +1,46 @@
 <template>
-    <div class="card" :class="[cardData.color, { 'wild-card': isWildCard }]">
-      <div class="card-content">
-        <span class="card-value">{{ displayValue }}</span>
-        <span v-if="!isWildCard" class="card-color-indicator"></span>
-      </div>
+  <div 
+    class="card" 
+    :class="[cardData.color, { 'wild-card': isWildCard }]"
+    @click="handleClick"
+  >
+    <div class="card-content">
+      <span class="card-value">{{ displayValue }}</span>
+      <span v-if="!isWildCard" class="card-color-indicator"></span>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    props: {
-      cardData: {
-        type: Object,
-        required: true
-      }
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    cardData: {
+      type: Object,
+      required: true
+    }
+  },
+  computed: {
+    isWildCard() {
+      return this.cardData.color === 'negro';
     },
-    computed: {
-      isWildCard() {
-        return this.cardData.color === 'negro';
-      },
-      displayValue() {
-        if (this.cardData.tipo === 'acción') {
-          return this.cardData.valor.charAt(0).toUpperCase() + this.cardData.valor.slice(1);
-        }
-        return this.cardData.valor;
+    displayValue() {
+      if (this.cardData.tipo === 'acción') {
+        return this.cardData.valor.charAt(0).toUpperCase() + this.cardData.valor.slice(1);
+      }
+      return this.cardData.valor;
+    }
+  },
+  methods: {
+    handleClick() {
+      if (this.isWildCard) {
+        this.$emit('wild-card-clicked', this.cardData);
+      } else {
+        this.$emit('card-clicked', this.cardData);
       }
     }
   }
-  </script>
+}
+</script>
   
   <style scoped>
   .card {
